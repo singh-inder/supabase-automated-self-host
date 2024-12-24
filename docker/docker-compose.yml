@@ -24,7 +24,7 @@ services:
 
   studio:
     container_name: supabase-studio
-    image: supabase/studio:20241106-f29003e
+    image: supabase/studio:20241202-71e5240
     restart: unless-stopped
     healthcheck:
       test:
@@ -196,7 +196,7 @@ services:
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.33.58
+    image: supabase/realtime:v2.33.70
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -236,6 +236,7 @@ services:
       RLIMIT_NOFILE: "10000"
       APP_NAME: realtime
       SEED_SELF_HOST: true
+      RUN_JANITOR: true
 
   # To use S3 backed storage: docker compose -f docker-compose.yml -f docker-compose.s3.yml up
   storage:
@@ -250,13 +251,13 @@ services:
       imgproxy:
         condition: service_started
     healthcheck:
-      test: [
+      test:
+        [
           "CMD",
           "wget",
           "--no-verbose",
           "--tries=1",
           "--spider",
-          # Unhealthy container fix https://github.com/supabase/supabase/pull/29805
           "http://storage:5000/status"
         ]
       timeout: 5s
@@ -382,7 +383,7 @@ services:
   # Comment out everything below this point if you are using an external Postgres database
   db:
     container_name: supabase-db
-    image: supabase/postgres:15.6.1.139
+    image: supabase/postgres:15.6.1.146
     healthcheck:
       test: pg_isready -U postgres -h localhost
       interval: 5s
