@@ -193,7 +193,7 @@ while [ -z "$username" ]; do
 
     # https://stackoverflow.com/questions/18041761/bash-need-to-test-for-alphanumeric-string
     if [[ ! "$username" =~ ^[a-zA-Z0-9]+$ ]]; then
-        error_log "Only alphabets and numbers are allowed"
+        error_log "Only alphabets & numbers are allowed"
         username=""
     fi
     # read command automatically trims leading & trailing whitespace. No need to handle it separately
@@ -259,7 +259,7 @@ if [[ "$with_authelia" == true ]]; then
         read -rp "$(format_prompt "Enter Display Name:") " display_name
 
         if [[ ! "$display_name" =~ ^[a-zA-Z0-9[:space:]]+$ ]]; then
-            error_log "Only alphabets, numbers and spaces are allowed"
+            error_log "Only alphabets, numbers & spaces are allowed"
             display_name=""
         fi
     done
