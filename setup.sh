@@ -163,7 +163,11 @@ while [ -z "$domain" ]; do
         read -rp "$(format_prompt "Enter your domain:") " domain
     fi
 
-    protocol="$(url-parser --url "$domain" --get scheme)"
+    if ! protocol="$(url-parser --url "$domain" --get scheme 2>/dev/null)"; then
+        error_log "Couldn't extract protocol. Please check the url you entered.\n"
+        domain=""
+        continue
+    fi
 
     if [[ "$with_authelia" == true ]]; then
         # cookies.authelia_url needs to be https https://www.authelia.com/configuration/session/introduction/#authelia_url
@@ -171,10 +175,8 @@ while [ -z "$domain" ]; do
             error_log "As you've enabled --with-authelia flag, url protocol needs to https"
             domain=""
         else
-            registered_domain="$(url-parser --url "$domain" --get registeredDomain)"
-
-            if [ -z "$registered_domain" ]; then
-                error_log "Error extracting root domain\n"
+            if ! registered_domain="$(url-parser --url "$domain" --get registeredDomain 2>/dev/null)" || [ -z "$registered_domain" ]; then
+                error_log "Couldn't extract root domain. Please check the url you entered.\n"
                 domain=""
             fi
         fi
@@ -274,9 +276,7 @@ info_log "Finishing..."
 # https://www.baeldung.com/linux/bcrypt-hash#using-htpasswd
 password=$(htpasswd -bnBC 12 "" "$password" | cut -d : -f 2)
 
-gen_hex() {
-    openssl rand -hex "$1"
-}
+gen_hex() { openssl rand -hex "$1"; }
 
 jwt_secret=$(gen_hex 20)
 
@@ -309,6 +309,7 @@ service_role_payload='{"role": "service_role", "iss": "supabase"}'
 service_role_token=$(gen_token "$service_role_payload")
 
 sed -e "3d" \
+    -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=password_not_being_used|" \
     -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
     -e "s|JWT_SECRET.*|JWT_SECRET=$jwt_secret|" \
     -e "s|ANON_KEY.*|ANON_KEY=$anon_token|" \
@@ -346,7 +347,6 @@ else
                eval(strenv(yaml_path)).disabled = false' >./volumes/authelia/users_database.yml
 
     host="$(url-parser --url "$domain" --get host)"
-    registered_domain="$(url-parser --url "$domain" --get registeredDomain)"
 
     authelia_config_file_yaml='.access_control.rules[0].domain=strenv(host) | 
             .session.cookies[0].domain=strenv(registered_domain) | 
