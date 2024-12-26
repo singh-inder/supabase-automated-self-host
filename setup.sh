@@ -175,7 +175,10 @@ while [ -z "$domain" ]; do
             error_log "As you've enabled --with-authelia flag, url protocol needs to https"
             domain=""
         else
-            if ! registered_domain="$(url-parser --url "$domain" --get registeredDomain 2>/dev/null)" || [ -z "$registered_domain" ]; then
+            if
+                ! registered_domain="$(url-parser --url "$domain" --get registeredDomain 2>/dev/null)" || [ -z "$registered_domain" ] ||
+                    [ "$registered_domain" = "." ]
+            then
                 error_log "Couldn't extract root domain. Please check the url you entered.\n"
                 domain=""
             fi
