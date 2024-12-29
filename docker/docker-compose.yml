@@ -9,12 +9,7 @@ name: supabase
 services:
   caddy:
     container_name: caddy
-    build:
-      dockerfile_inline: |
-        FROM caddy:2.8.4-builder AS builder
-        RUN xcaddy build --with github.com/mholt/caddy-ratelimit
-        FROM caddy:2.8.4
-        COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+    image: ghcr.io/singh-inder/caddy-with-rate-limit:v1.0.0
     restart: unless-stopped
     environment:
       DOMAIN: ${SUPABASE_PUBLIC_URL:?error}
