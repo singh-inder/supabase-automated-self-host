@@ -349,26 +349,26 @@ else
 
     env_vars="${env_vars}\nAUTHELIA_SESSION_SECRET=$(gen_hex 32)\nAUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)\nAUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
 
-    authelia_docker_service_yaml=".services.authelia.container_name = \"authelia\" |
-       .services.authelia.image = \"authelia/authelia:4.38\" |
-       .services.authelia.volumes = [\"./volumes/authelia:/config\"] |
-       .services.authelia.depends_on.db.condition = \"service_healthy\" |
+    # shellcheck disable=SC2016
+    authelia_docker_service_yaml='.services.authelia.container_name = "authelia" |
+       .services.authelia.image = "authelia/authelia:4.38" |
+       .services.authelia.volumes = ["./volumes/authelia:/config"] |
+       .services.authelia.depends_on.db.condition = "service_healthy" |
        .services.authelia.expose = [9091] |    
-       .services.authelia.restart = \"unless-stopped\" |    
+       .services.authelia.restart = "unless-stopped" |    
        .services.authelia.healthcheck.disable = false |
        .services.authelia.environment = {
-         \"AUTHELIA_STORAGE_POSTGRES_ADDRESS\": \"tcp://db:5432\",
-         \"AUTHELIA_STORAGE_POSTGRES_USERNAME\": \"postgres\",
-         \"AUTHELIA_STORAGE_POSTGRES_PASSWORD\" : \"\${POSTGRES_PASSWORD}\",
-         \"AUTHELIA_STORAGE_POSTGRES_DATABASE\" : \"\${POSTGRES_DB}\",
-         \"AUTHELIA_STORAGE_POSTGRES_SCHEMA\" : strenv(authelia_schema),
-         \"AUTHELIA_SESSION_SECRET\": \"\${AUTHELIA_SESSION_SECRET:?error}\",
-         \"AUTHELIA_STORAGE_ENCRYPTION_KEY\": \"\${AUTHELIA_STORAGE_ENCRYPTION_KEY:?error}\",
-         \"AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET\": \"\${AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET:?error}\"
-       } |
-       
+         "AUTHELIA_STORAGE_POSTGRES_ADDRESS": "tcp://db:5432",
+         "AUTHELIA_STORAGE_POSTGRES_USERNAME": "postgres",
+         "AUTHELIA_STORAGE_POSTGRES_PASSWORD" : "${POSTGRES_PASSWORD}",
+         "AUTHELIA_STORAGE_POSTGRES_DATABASE" : "${POSTGRES_DB}",
+         "AUTHELIA_STORAGE_POSTGRES_SCHEMA" : strenv(authelia_schema),
+         "AUTHELIA_SESSION_SECRET": "${AUTHELIA_SESSION_SECRET:?error}",
+         "AUTHELIA_STORAGE_ENCRYPTION_KEY": "${AUTHELIA_STORAGE_ENCRYPTION_KEY:?error}",
+         "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET": "${AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET:?error}"
+       } |       
        .services.db.environment.AUTHELIA_SCHEMA = strenv(authelia_schema) |
-       .services.db.volumes += \"./volumes/db/schema-authelia.sh:/docker-entrypoint-initdb.d/schema-authelia.sh\""
+       .services.db.volumes += "./volumes/db/schema-authelia.sh:/docker-entrypoint-initdb.d/schema-authelia.sh"'
 
     if [[ "$setup_redis" == true ]]; then
         authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
@@ -376,6 +376,7 @@ else
         authelia_docker_service_yaml="${authelia_docker_service_yaml}|.services.redis.container_name=\"redis\" |
                     .services.redis.image=\"redis:7.4\" |
                     .services.redis.expose=[6379] |
+                    .services.redis.volumes=[\"./volumes/redis:/data\"] |
                     .services.redis.healthcheck={
                     \"test\" : [\"CMD-SHELL\",\"redis-cli ping | grep PONG\"],
                     \"timeout\" : \"5s\",
