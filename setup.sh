@@ -431,6 +431,8 @@ echo -e "{\$DOMAIN} {
         handle_errors 429 {
 		    respond \"You're being rate limited\"
 	    }
+
+        header -server
 }" >Caddyfile
 
 unset password confirmPassword
