@@ -10,7 +10,7 @@ name: supabase
 services:
   caddy:
     container_name: caddy
-    image: ghcr.io/singh-inder/caddy-with-rate-limit:v1.0.0
+    image: ghcr.io/singh-inder/caddy-with-rate-limit:v1.1.0
     restart: unless-stopped
     environment:
       DOMAIN: ${SUPABASE_PUBLIC_URL:?error}
