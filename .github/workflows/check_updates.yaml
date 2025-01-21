@@ -1,5 +1,5 @@
 # https://github.com/patrickloeber/python-github-action-template/tree/main
-name: Check for supabase docker image updates
+name: Check for supabase docker updates
 
 on:
   workflow_dispatch:

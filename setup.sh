@@ -302,11 +302,13 @@ service_role_payload='{"role": "service_role", "iss": "supabase"}'
 service_role_token=$(gen_token "$service_role_payload")
 
 sed -e "3d" \
-    -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=password_not_being_used|" \
     -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
     -e "s|JWT_SECRET.*|JWT_SECRET=$jwt_secret|" \
     -e "s|ANON_KEY.*|ANON_KEY=$anon_token|" \
     -e "s|SERVICE_ROLE_KEY.*|SERVICE_ROLE_KEY=$service_role_token|" \
+    -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=not_being_used|" \
+    -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
+    -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
     -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain/api|" \
     -e "s|SUPABASE_PUBLIC_URL.*|SUPABASE_PUBLIC_URL=$domain|" \
     -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" .env.example >.env
