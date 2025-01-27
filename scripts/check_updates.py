@@ -1,64 +1,55 @@
+import aiohttp
 import requests
+import aiofiles
+import asyncio
 import json
 import os
 import io
 import datetime
 from difflib import HtmlDiff, unified_diff
 from typing import List
-import glob
 import htmlmin
 from bs4 import BeautifulSoup
 from github import Github, Repository, ContentFile
 
-skip = ["README.md", ".gitignore"]
 
-
-def download(c: ContentFile, out: str):
-    filename = os.path.basename(c.download_url)
-    if filename in skip:
-        return print(f"Skipping {filename}")
-
+async def download(
+    c: ContentFile.ContentFile, out: str, session: aiohttp.ClientSession
+):
     try:
-        r = requests.get(c.download_url)
+        async with session.get(c.download_url) as res:
+            output_path = f"{out}/{c.path}"
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        output_path = f"{out}/{c.path}"
+            async with aiofiles.open(output_path, "wb") as f:
+                try:
+                    print(f"downloading {c.path} to {output_path}")
+                    while content := await res.content.read(20 << 10):
+                        await f.write(content)
+                except Exception as err:
+                    print(f"Error writing file {c.name}: {err}")
+                else:
+                    return output_path
+    except Exception as err:
+        raise Exception(f"Error downloading {c.name}: {err}")
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        with open(output_path, "wb") as f:
-            try:
-                print(f"downloading {c.path} to {out}")
-                f.write(r.content)
-            except Exception as err:
-                print(f"Error writing file {filename} {err}")
-    except requests.exceptions.HTTPError as err:
-        print(f"Error downloading {filename}: {err}")
-
-
-def download_folder(repo: Repository, folder: str, out: str, recursive: bool):
+def get_repo_files(
+    repo: Repository.Repository,
+    folder: str,
+    repoFiles: List[ContentFile.ContentFile],
+    recursive: bool,
+):
     contents = repo.get_contents(folder)
     for c in contents:
         if c.download_url is None:
             if recursive:
-                download_folder(repo, c.path, out, recursive)
+                get_repo_files(repo, c.path, repoFiles, recursive)
             continue
-        download(c, out)
+        repoFiles.append(c)
 
 
-def download_file(repo: Repository, folder: str, out: str):
-    c = repo.get_contents(folder)
-    download(c, out)
-
-
-def get_files(filePath: str, list: List[str]):
-    for item in glob.glob(f"{filePath}/*", include_hidden=True):
-        if os.path.isfile(item):
-            list.append(item)
-        elif os.path.isdir(item):
-            get_files(os.path.join(filePath, item), list)
-
-
-def main():
+async def main():
     discord_webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
 
     if discord_webhook_url is None:
@@ -71,13 +62,28 @@ def main():
 
     g = Github()
     repo = g.get_repo("supabase/supabase")
-    download_folder(repo, folder="docker", out=out, recursive=True)
+    repoFiles: List[ContentFile.ContentFile] = []
+    get_repo_files(repo, "docker", repoFiles, True)
 
     local_docker_dir = os.path.normpath(os.path.join(current_dir, "../docker"))
-    remote_docker_dir = os.path.join(out, "docker")
-    remote_files: List[str] = []
 
-    get_files(remote_docker_dir, remote_files)
+    remote_files = []
+
+    async with aiohttp.ClientSession() as session:
+        skip = ["readme.md", ".gitignore"]
+        try:
+            async with asyncio.TaskGroup() as tg:
+                for f in repoFiles:
+                    if f.name.lower() in skip:
+                        print(f"skip downloading {f.name}")
+                    else:
+                        remote_files.append(tg.create_task(download(f, out, session)))
+        except* Exception as err:
+            raise SystemExit(f"ERROR in download taskgroup: {err.exceptions}")
+
+    remote_files = [
+        os.path.normpath(remote_file.result()) for remote_file in remote_files
+    ]
 
     extra_files: List[str] = []
 
@@ -129,7 +135,9 @@ def main():
 
                     html_body += soup.find("body").decode_contents()
             except Exception as err:
-                print(err)
+                raise SystemExit(
+                    f"Error generating diff for file {remote_file_path}: {err}"
+                )
 
     if len(html_body) == 0:
         html_diff = "<html><body><h1>No changes!</h1></body></html>"
@@ -160,13 +168,11 @@ def main():
             files={"file": file},
         )
         res.raise_for_status()
-    except requests.exceptions.HTTPError as err:
-        raise SystemExit(err)
     except Exception as err:
-        raise SystemExit(f"Error: {err}")
+        raise SystemExit(f"ERROR sending to discord webhook: {err}")
     finally:
         file.close()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

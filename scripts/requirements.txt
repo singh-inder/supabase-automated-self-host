@@ -2,3 +2,5 @@ requests==2.32.3
 PyGithub===2.5.0
 htmlmin===0.1.12
 beautifulsoup4===4.12.3
+aiohttp===3.11.11
+aiofiles===24.1.0
