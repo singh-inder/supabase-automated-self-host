@@ -117,6 +117,11 @@ async def main():
                     )
                     soup = BeautifulSoup(html_diff, "html.parser")
 
+                    # fmt: off
+                    if "no differences" in soup.select_one("body table tbody tr").get_text().lower():
+                        continue
+                    # fmt: on
+
                     if html_head == "":
                         html_head = soup.find("head").decode()
 
