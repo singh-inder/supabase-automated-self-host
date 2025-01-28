@@ -6,7 +6,7 @@ import json
 import os
 import io
 import datetime
-from difflib import HtmlDiff, unified_diff
+from difflib import HtmlDiff
 from typing import List
 import htmlmin
 from bs4 import BeautifulSoup
@@ -18,7 +18,7 @@ async def download(
 ):
     try:
         async with session.get(c.download_url) as res:
-            output_path = f"{out}/{c.path}"
+            output_path = os.path.join(out, c.path)
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
             async with aiofiles.open(output_path, "wb") as f:
@@ -59,13 +59,12 @@ async def main():
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     out = os.path.join(current_dir, "remote")
+    local_docker_dir = os.path.normpath(os.path.join(current_dir, "../docker"))
 
     g = Github()
     repo = g.get_repo("supabase/supabase")
     repoFiles: List[ContentFile.ContentFile] = []
     get_repo_files(repo, "docker", repoFiles, True)
-
-    local_docker_dir = os.path.normpath(os.path.join(current_dir, "../docker"))
 
     remote_files = []
 
@@ -86,52 +85,47 @@ async def main():
     ]
 
     extra_files: List[str] = []
-
-    html_head = ""
-    html_body = ""
+    html_head, html_body = "", ""
+    legends_table_html, legends_selector = "", "table[summary='Legends']"
 
     for remote_file_path in remote_files:
+        local_file_path = os.path.join(
+            local_docker_dir,
+            # have to use os.sep when splitting https://stackoverflow.com/a/1945930/18954618 returns path as=> /dev/data.sql
+            remote_file_path.split(f"docker{os.sep}", maxsplit=1).pop(),
+        )
+
+        if not os.path.isfile(local_file_path):
+            extra_files.append(remote_file_path)
+            continue
+
         with open(remote_file_path, "r") as remote_file:
             try:
-                local_file_path = (
-                    local_docker_dir
-                    + remote_file_path.split(
-                        "docker", maxsplit=1
-                    ).pop()  # -> /dev/data.sql
-                )
-
-                if not os.path.isfile(local_file_path):
-                    extra_files.append(remote_file_path)
-                    continue
-
                 with open(local_file_path, "r") as local_file:
                     local_lines = local_file.read().splitlines()
                     remote_lines = remote_file.read().splitlines()
 
-                    diff_list = list(
-                        unified_diff(
-                            local_lines,
-                            remote_lines,
-                        )
-                    )
-
-                    if len(diff_list) == 0:
-                        continue
-
                     fileName = os.path.basename(local_file_path)
 
-                    d = HtmlDiff()
-
-                    html_diff = d.make_file(
+                    html_diff = HtmlDiff().make_file(
                         local_lines,
                         remote_lines,
                         fromdesc=f"{fileName} Local File",
                         todesc=f"{fileName} Remote File",
+                        context=True,
+                        numlines=10,
                     )
                     soup = BeautifulSoup(html_diff, "html.parser")
 
-                    if len(html_head) == 0:
-                        html_head = soup.find("head").decode_contents()
+                    if html_head == "":
+                        html_head = soup.find("head").decode()
+
+                    legends_table = soup.select_one(legends_selector)
+
+                    if legends_table is not None:
+                        if legends_table_html == "":
+                            legends_table_html = legends_table.decode()
+                        legends_table.decompose()
 
                     html_body += soup.find("body").decode_contents()
             except Exception as err:
@@ -148,6 +142,7 @@ async def main():
         <body>
         {"" if len(extra_files) == 0 else f"<h1>extraFiles={str(extra_files)}</h1><br>"}
         {html_body}
+        {legends_table_html}
         </body>
         </html>
         """
