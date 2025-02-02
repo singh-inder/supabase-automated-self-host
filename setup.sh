@@ -321,7 +321,7 @@ update_yaml_file() {
 }
 
 compose_file="docker-compose.yml"
-env_vars="\nCADDY_RATE_LIMIT_WINDOW='1m'\nCADDY_RATE_LIMIT_COUNT=80"
+env_vars=""
 
 if [[ "$with_authelia" == false ]]; then
     env_vars="${env_vars}\nCADDY_AUTH_USERNAME=$username\nCADDY_AUTH_PASSWORD='$password'"
@@ -402,23 +402,16 @@ echo -e "{\$DOMAIN} {
         @api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /api*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
-        route @authelia {
+        handle @authelia {
                 reverse_proxy authelia:9091
         }
         ")
 
-        route @api {
-            rate_limit {
-			    zone my_zone {
-				    key {remote_host}
-				    window {\$CADDY_RATE_LIMIT_WINDOW}
-				    events {\$CADDY_RATE_LIMIT_COUNT}
-			    }
-		    }
+        handle @api {
 		    reverse_proxy kong:8000
 	    }   
 
-       	route {
+       	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
 			    {\$CADDY_AUTH_USERNAME} {\$CADDY_AUTH_PASSWORD}
 		    }" || echo "forward_auth authelia:9091 {
@@ -430,10 +423,6 @@ echo -e "{\$DOMAIN} {
 		    reverse_proxy studio:3000
 	    }
       	
-        handle_errors 429 {
-		    respond \"You're being rate limited\"
-	    }
-
         header -server
 }" >Caddyfile
 
