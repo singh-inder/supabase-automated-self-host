@@ -1,1 +1,1 @@
-docker/volumes/api/kong.yml
+docker/volumes/**/*
