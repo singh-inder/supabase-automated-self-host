@@ -50,17 +50,8 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
-      - name: Init containers
-        run: cd docker && docker compose up -d
-
-      # docker compose up --wait was failing as some containers were healthy on second attempt. This action retries
-      - name: Wait for containers to be healthy
-        uses: jaracogmbh/docker-compose-health-check-action@v1.0.0
-        with:
-          max-retries: 30
-          retry-interval: 15
-          compose-file: "docker/docker-compose.yml"
-          skip-exited: "true"
+      - name: Init & wait for containers to be healthy
+        run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
 
       - name: Generate tar
         run: |
