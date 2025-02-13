@@ -14,9 +14,7 @@ Note: This project isn't officially supported by Supabase. For any information r
 
 ## Setup Instructions
 
-<!-- TODO: ADD YT SCREENSHOT AND VIDEO LINK -->
-
-<!-- [![Everything Is AWESOME](https://i.sstatic.net/q3ceS.png)](https://youtu.be/StTqXEQ2l-Y "Everything Is AWESOME") -->
+[![Self-Host Supabase with 2FA and Caddy](https://imgur.com/mCM0ZRG.jpeg)](https://www.youtube.com/watch?v=XhTBCGb0rTM "Self-Host Supabase with 2FA and Caddy - Just Run One Script!")
 
 1. Download `setup.sh` script
 
