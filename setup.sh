@@ -399,7 +399,7 @@ echo -e "$env_vars" >>.env
 # https://stackoverflow.com/a/3953712/18954618
 echo -e "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /api*
+        @api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/* /api*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
