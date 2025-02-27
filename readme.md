@@ -1,8 +1,6 @@
 # Supabase automated self host
 
-Effortlessly deploy your own self-hosted, dockerized instance of Supabase with this fully automated setup script. This project simplifies the entire process, including the configuration of [Caddy](https://github.com/caddyserver/caddy) as a reverse proxy and [Authelia](https://github.com/authelia/authelia) for 2-factor authentication.
-
-Note: This project isn't officially supported by Supabase. For any information regarding Supabase itself you can refer to their [docs](https://supabase.com/docs).
+Deploy a self-hosted Supabase instance with 2-factor authentication (2FA) using [Authelia](https://github.com/authelia/authelia) and [Caddy](https://github.com/caddyserver/caddy) as a reverse proxy, all with **ONE bash script!**
 
 👉 If you find this project helpful, please consider leaving a ⭐ to show your support. You can also support my work by [buying me a coffee](https://buymeacoffee.com/_inder1). Thankyou!
 
@@ -10,7 +8,7 @@ Note: This project isn't officially supported by Supabase. For any information r
 
 - **A Linux Machine with docker installed**: This can be a server or any personal computer running Linux with at least 1 GB RAM and 25 GB Disk space. **The script has been tested only on Linux/WSL.**
 
-- **Own Domain**: A domain name is required only if you're going to expose supabase services to the internet. Otherwise you can run supabase locally (more on this in setup instructions)
+- **Own Domain**: Only required if you're going to expose supabase services to the internet. Otherwise you can run supabase locally (more on this in setup instructions)
 
 ## Setup Instructions
 
@@ -77,7 +75,7 @@ After script completes successfully, cd into `supabase/docker` directory and run
 
 By default, Supabase api routes don't have any rate-limits on the self hosted instance. You can easily rate-limit api routes using caddy server by following the steps [HERE](https://github.com/singh-inder/supabase-automated-self-host/discussions/19)
 
-## supabase-automated-self-host vs. coolify: Key Differences
+## How this differs from coolify:
 
 - Coolify needs at least 2 GB RAM and 30 GB of disk space. Supabase itself only needs 1 GB ram and 25 GB disk space to start.
 
@@ -86,8 +84,6 @@ By default, Supabase api routes don't have any rate-limits on the self hosted in
 - Coolify relies on Kong API Gateway by default, without a separate reverse proxy. This project configures Caddy as a reverse proxy, allowing easy rate-limiting. Support for multiple reverse proxies is also planned.
 
 - This script is definitely going to be faster than setting up through Coolify.
-
-- Personal bias here, I can't stand GUIs. With this, you get full control from the terminal, no clicking around, just a script that gets it done.
 
 ## Where to ask for help?
 
@@ -98,6 +94,8 @@ By default, Supabase api routes don't have any rate-limits on the self hosted in
 ## License
 
 This project is licensed under the [Apache 2.0 License](LICENSE).
+
+Note: This project isn't officially supported by Supabase. For any information regarding Supabase itself you can refer to their [docs](https://supabase.com/docs).
 
 ## Contributions
 
