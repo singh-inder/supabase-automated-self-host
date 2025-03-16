@@ -239,7 +239,7 @@ if [[ "$with_authelia" == true ]]; then
     fi
 
     while [ -z "$email" ]; do
-        read -rp "$(format_prompt "Enter your email:") " email
+        read -rp "$(format_prompt "Enter your email for Authelia:") " email
 
         # split email string on @ symbol
         IFS="@" read -r before_at after_at <<<"$email"
@@ -309,7 +309,7 @@ sed -e "3d" \
     -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=not_being_used|" \
     -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
     -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
-    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain/api|" \
+    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain/goapi|" \
     -e "s|SUPABASE_PUBLIC_URL.*|SUPABASE_PUBLIC_URL=$domain|" \
     -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" .env.example >.env
 
@@ -399,7 +399,7 @@ echo -e "$env_vars" >>.env
 # https://stackoverflow.com/a/3953712/18954618
 echo -e "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/* /api*
+        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -407,9 +407,13 @@ echo -e "{\$DOMAIN} {
         }
         ")
 
-        handle @api {
+        handle @supa_api {
 		    reverse_proxy kong:8000
-	    }   
+	    }
+
+        handle_path /goapi/* {
+            reverse_proxy kong:8000
+        }
 
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
