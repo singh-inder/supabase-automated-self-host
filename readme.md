@@ -65,7 +65,7 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
 
    - **Enter Display Name:** Used by authelia in emails and [dashboard](https://gist.github.com/user-attachments/assets/a7a4c0b8-920e-4b61-9bb5-1cae26d5bbe9).
 
-   - **Do you want to setup redis with authelia? [y/n]:** By default, authelia stores session data in memory. In layman terms: If authelia container dies for some reason every user will be logged out. **If you're going to production, Authelia team [recommends](https://www.authelia.com/configuration/session/redis/) to use redis to store session data**.
+   - **Do you want to setup redis with authelia? [y/n]:** By default, authelia stores session data in memory. In layman terms: If authelia container dies for some reason every user logged into supabase dashboard will be logged out. **If you're going to production, Authelia team [recommends](https://www.authelia.com/configuration/session/redis/) to use redis to store session data**.
 
 Thats it!
 
