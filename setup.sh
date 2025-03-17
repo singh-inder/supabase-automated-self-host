@@ -220,6 +220,12 @@ while [ -z "$domain" ]; do
         continue
     fi
 
+    if ! host="$(url-parser --url "$domain" --get host 2>/dev/null)"; then
+        error_log "Couldn't extract url host. Please check the url you entered.\n"
+        domain=""
+        continue
+    fi
+
     if [[ "$with_authelia" == true ]]; then
         # cookies.authelia_url needs to be https https://www.authelia.com/configuration/session/introduction/#authelia_url
         if [[ "$protocol" != "https" ]]; then
@@ -383,12 +389,65 @@ update_yaml_file() {
 compose_file="docker-compose.yml"
 env_vars=""
 
-if [[ "$with_authelia" == false ]]; then
-    env_vars="${env_vars}\nCADDY_AUTH_USERNAME=$username\nCADDY_AUTH_PASSWORD='$password'"
+proxy_service_yaml=".services.$proxy.container_name=\"$proxy-container\" |
+.services.$proxy.restart=\"unless-stopped\" |
+.services.$proxy.ports=[\"80:80\",\"443:443\"]
+"
 
-    update_yaml_file ".services.caddy.environment.CADDY_AUTH_USERNAME = \"\${CADDY_AUTH_USERNAME?:error}\" |
-           .services.caddy.environment.CADDY_AUTH_PASSWORD = \"\${CADDY_AUTH_PASSWORD?:error}\"" "$compose_file"
+if [[ "$proxy" == "caddy" ]]; then
+    proxy_service_yaml="${proxy_service_yaml} |
+                        .services.caddy.image=\"caddy:2.9.1\" |
+                        .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
+                        .services.caddy.volumes=[\"./Caddyfile:/etc/caddy/Caddyfile\",\"./volumes/caddy/caddy_data:/data\",\"./volumes/caddy/caddy_config:/config\"]
+                       "
 else
+    env_vars="${env_vars}\nNGINX_SERVER_NAME=$host"
+    # docker compose nginx service command directive
+    nginx_cmd=""
+
+    # path in local fs where nginx template file is stored
+    nginx_local_template_file="./volumes/nginx/nginx.template"
+
+    # path inside container where template file will be mounted
+    nginx_container_template_file="/etc/nginx/conf.d/nginx.template"
+
+    # Pass an array of args to nginx service command directive https://stackoverflow.com/a/57821785/18954618
+    # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
+
+    proxy_service_yaml="${proxy_service_yaml} |
+                        .services.nginx.image=\"nginx:1.27.4\" |
+                        .services.nginx.volumes=[\"$nginx_local_template_file:$nginx_container_template_file\"] |
+                        .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
+                        .services.nginx.command=[\"/bin/bash\",\"-c\",strenv(nginx_cmd)]
+                       "
+
+    # https://www.baeldung.com/linux/nginx-config-environment-variables#4-a-common-pitfall
+
+    printf -v nginx_cmd "envsubst '\$\${NGINX_SERVER_NAME}' < %s >/etc/nginx/conf.d/nginx.conf \\
+&& nginx -g 'daemon off;'\n" "$nginx_container_template_file"
+fi
+
+# HANDLE BASIC_AUTH
+if [[ "$with_authelia" == false ]]; then
+    env_vars="${env_vars}\nPROXY_AUTH_USERNAME=$username\nPROXY_AUTH_PASSWORD='$password'"
+
+    proxy_service_yaml="${proxy_service_yaml} | 
+                        .services.$proxy.environment.PROXY_AUTH_USERNAME = \"\${PROXY_AUTH_USERNAME:?error}\" |
+                        .services.$proxy.environment.PROXY_AUTH_PASSWORD = \"\${PROXY_AUTH_PASSWORD:?error}\"
+                        "
+
+    if [[ "$proxy" == "nginx" ]]; then
+        # path inside nginx container for storing basic_auth credentials
+        nginx_pass_file="/etc/nginx/conf.d/pass"
+
+        printf -v nginx_cmd "echo \"\$\${PROXY_AUTH_USERNAME}:\$\${PROXY_AUTH_PASSWORD}\" >%s \\
+&& %s" $nginx_pass_file "$nginx_cmd"
+    fi
+fi
+
+nginx_cmd="${nginx_cmd:=""}" update_yaml_file "$proxy_service_yaml" "$compose_file"
+
+if [[ "$with_authelia" == true ]]; then
     # Dynamically update yaml path from env https://github.com/mikefarah/yq/discussions/1253
     # https://mikefarah.gitbook.io/yq/operators/style
 
@@ -401,8 +460,6 @@ else
                eval(strenv(yaml_path)).groups = ["admins","dev"] | 
                .. style="double" | 
                eval(strenv(yaml_path)).disabled = false' >./volumes/authelia/users_database.yml
-
-    host="$(url-parser --url "$domain" --get host)"
 
     authelia_config_file_yaml='.access_control.rules[0].domain=strenv(host) | 
             .session.cookies[0].domain=strenv(registered_domain) | 
@@ -456,8 +513,9 @@ fi
 
 echo -e "$env_vars" >>.env
 
-# https://stackoverflow.com/a/3953712/18954618
-echo -e "{\$DOMAIN} {
+if [[ "$proxy" == "caddy" ]]; then
+    # https://stackoverflow.com/a/3953712/18954618
+    echo "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
         @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/*
 
@@ -477,7 +535,7 @@ echo -e "{\$DOMAIN} {
 
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
-			    {\$CADDY_AUTH_USERNAME} {\$CADDY_AUTH_PASSWORD}
+			    {\$PROXY_AUTH_USERNAME} {\$PROXY_AUTH_PASSWORD}
 		    }" || echo "forward_auth authelia:9091 {
                         uri /api/authz/forward-auth
 
@@ -489,6 +547,61 @@ echo -e "{\$DOMAIN} {
       	
         header -server
 }" >Caddyfile
+else
+    mkdir -p "$(dirname "$nginx_local_template_file")"
+
+    echo "    
+upstream kong_upstream {
+        server kong:8000;
+        keepalive 2;
+}
+
+server {
+        listen 80;
+        listen [::]:80;
+        server_name \${NGINX_SERVER_NAME};
+        server_tokens off;
+        proxy_http_version 1.1;
+
+        location /realtime {
+            proxy_pass http://kong_upstream;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \"upgrade\";
+            proxy_read_timeout 3600s;
+        }
+
+        location /storage {
+            client_max_body_size 100M;
+            proxy_pass http://kong_upstream;
+        }
+
+    	location /goapi/ {
+		    proxy_pass http://kong_upstream/;
+	    }
+
+        location /rest {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /auth {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /functions {
+            proxy_pass http://kong_upstream;
+        }
+
+        location / {
+            $(
+        [[ $with_authelia == false ]] && echo "auth_basic \"Admin\";
+            auth_basic_user_file $nginx_pass_file;
+            " || echo ""
+    )
+            proxy_pass http://studio:3000;
+        }
+}
+    " >"$nginx_local_template_file"
+fi
 
 unset password confirmPassword
 if [ -n "$SUDO_USER" ]; then chown -R "$SUDO_USER": .; fi

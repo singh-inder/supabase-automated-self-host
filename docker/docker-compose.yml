@@ -8,21 +8,6 @@
 name: supabase
 
 services:
-  caddy:
-    container_name: caddy-container
-    image: caddy:2.9.1
-    restart: unless-stopped
-    environment:
-      DOMAIN: ${SUPABASE_PUBLIC_URL:?error}
-    ports:
-      - 80:80
-      - 443:443
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./volumes/caddy/caddy_data:/data
-      - ./volumes/caddy/caddy_config:/config
-
   studio:
     container_name: supabase-studio
     image: supabase/studio:20250224-d10db0f
