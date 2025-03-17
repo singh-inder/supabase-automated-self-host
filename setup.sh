@@ -33,6 +33,69 @@ error_exit() {
 # https://stackoverflow.com/a/18216122/18954618
 if [ "$EUID" -ne 0 ]; then error_exit "Please run this script as root user"; fi
 
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Self-host Supabase with nginx/caddy and authelia 2FA with just ONE bash script."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help           Show this help message and exit"
+    echo "  --proxy PROXY        Set the reverse proxy to use (nginx or caddy). Default: caddy"
+    echo "  --with-authelia      Enable or disable Authelia 2FA support"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --proxy nginx --with-authelia    # Set up Supabase with nginx and Authelia 2FA"
+    echo "  $0 --proxy caddy                    # Set up Supabase with caddy and no 2FA"
+    echo ""
+    echo "For more information, visit the project repository:"
+    echo "https://github.com/singh-inder/supabase-automated-self-host"
+}
+
+has_argument() {
+    [[ ("$1" == *=* && -n ${1#*=}) || (-n "$2" && "$2" != -*) ]]
+}
+
+extract_argument() { echo "${2:-${1#*=}}"; }
+
+with_authelia=false
+proxy="caddy"
+
+# https://medium.com/@wujido20/handling-flags-in-bash-scripts-4b06b4d0ed04
+while [ $# -gt 0 ]; do
+    case "$1" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+
+    --with-authelia)
+        with_authelia=true
+        ;;
+
+    --proxy)
+        if has_argument "$@"; then
+            proxy="$(extract_argument "$@")"
+            shift
+        fi
+        ;;
+
+    *)
+        echo -e "ERROR: ${RED}Invalid option:${NO_COLOR} $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+done
+
+if [[ "$proxy" != "caddy" && "$proxy" != "nginx" ]]; then
+    error_exit "proxy can only be caddy or nginx"
+fi
+
+info_log "Configuration Summary"
+echo -e "  ${GREEN}Proxy:${NO_COLOR} ${proxy}"
+echo -e "  ${GREEN}Authelia 2FA:${NO_COLOR} ${with_authelia}"
+
 detect_arch() {
     case $(uname -m) in
     x86_64) echo "amd64" ;;
@@ -57,9 +120,6 @@ arch="$(detect_arch)"
 
 if [[ "$os" == "err" ]]; then error_exit "This script only supports linux os"; fi
 if [[ "$arch" == "err" ]]; then error_exit "Unsupported cpu architecture"; fi
-
-with_authelia=false
-if [[ "$#" -gt 0 && "$1" == "--with-authelia" ]]; then with_authelia=true; fi
 
 packages=(curl wget jq openssl git)
 
