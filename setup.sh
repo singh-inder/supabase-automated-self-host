@@ -389,6 +389,12 @@ update_yaml_file() {
 compose_file="docker-compose.yml"
 env_vars=""
 
+update_env_vars() {
+    for env_key_value in "$@"; do
+        env_vars="${env_vars}\n$env_key_value"
+    done
+}
+
 # START DEFINING proxy_service_yaml
 proxy_service_yaml=".services.$proxy.container_name=\"$proxy-container\" |
 .services.$proxy.restart=\"unless-stopped\" |
@@ -406,7 +412,7 @@ if [[ "$proxy" == "caddy" ]]; then
                         .services.caddy.volumes=[\"./Caddyfile:/etc/caddy/Caddyfile\",\"./volumes/caddy/caddy_data:/data\",\"./volumes/caddy/caddy_config:/config\"]
                        "
 else
-    env_vars="${env_vars}\nNGINX_SERVER_NAME=$host"
+    update_env_vars "NGINX_SERVER_NAME=$host"
     # docker compose nginx service command directive. Passed via yq strenv
     nginx_cmd=""
 
@@ -443,7 +449,7 @@ fi
 
 # HANDLE BASIC_AUTH
 if [[ "$with_authelia" == false ]]; then
-    env_vars="${env_vars}\nPROXY_AUTH_USERNAME=$username\nPROXY_AUTH_PASSWORD='$password'"
+    update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD='$password'"
 
     proxy_service_yaml="${proxy_service_yaml} | 
                         .services.$proxy.environment.PROXY_AUTH_USERNAME = \"\${PROXY_AUTH_USERNAME:?error}\" |
@@ -491,7 +497,7 @@ if [[ "$with_authelia" == true ]]; then
     # auth implementation
     authelia_config_file_yaml="${authelia_config_file_yaml} | .server.endpoints.authz.$server_endpoints.implementation=\"$implementation\""
 
-    env_vars="${env_vars}\nAUTHELIA_SESSION_SECRET=$(gen_hex 32)\nAUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)\nAUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
+    update_env_vars "AUTHELIA_SESSION_SECRET=$(gen_hex 32)" "AUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)" "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
 
     # shellcheck disable=SC2016
     authelia_docker_service_yaml='.services.authelia.container_name = "authelia" |
