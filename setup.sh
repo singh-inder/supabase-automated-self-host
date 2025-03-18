@@ -389,10 +389,15 @@ update_yaml_file() {
 compose_file="docker-compose.yml"
 env_vars=""
 
+# START DEFINING proxy_service_yaml
 proxy_service_yaml=".services.$proxy.container_name=\"$proxy-container\" |
 .services.$proxy.restart=\"unless-stopped\" |
-.services.$proxy.ports=[\"80:80\",\"443:443\"]
+.services.$proxy.ports=[\"80:80\",\"443:443\"] |
+.services.nginx.depends_on.kong.condition=\"service_healthy\"
 "
+if [[ "$with_authelia" == true ]]; then
+    proxy_service_yaml="${proxy_service_yaml} | .services.nginx.depends_on.authelia.condition=\"service_healthy\""
+fi
 
 if [[ "$proxy" == "caddy" ]]; then
     proxy_service_yaml="${proxy_service_yaml} |
@@ -402,29 +407,38 @@ if [[ "$proxy" == "caddy" ]]; then
                        "
 else
     env_vars="${env_vars}\nNGINX_SERVER_NAME=$host"
-    # docker compose nginx service command directive
+    # docker compose nginx service command directive. Passed via yq strenv
     nginx_cmd=""
 
+    nginx_local_volume="./volumes/nginx"
     # path in local fs where nginx template file is stored
-    nginx_local_template_file="./volumes/nginx/nginx.template"
+    nginx_local_template_file="$nginx_local_volume/nginx.template"
 
     # path inside container where template file will be mounted
-    nginx_container_template_file="/etc/nginx/conf.d/nginx.template"
+    nginx_container_template_file="/etc/nginx/user_conf.d/nginx.template"
 
     # Pass an array of args to nginx service command directive https://stackoverflow.com/a/57821785/18954618
     # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
 
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.nginx.image=\"nginx:1.27.4\" |
-                        .services.nginx.volumes=[\"$nginx_local_template_file:$nginx_container_template_file\"] |
+                        .services.nginx.image=\"jonasal/nginx-certbot:5.4.1-nginx1.27.4\" |
+                        .services.nginx.volumes=[\"$nginx_local_volume:/etc/nginx/user_conf.d\",\"$nginx_local_volume/letsencrypt:/etc/letsencrypt\"] |
                         .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
+                        .services.nginx.environment.CERTBOT_EMAIL=\"your@email.org\" |
                         .services.nginx.command=[\"/bin/bash\",\"-c\",strenv(nginx_cmd)]
                        "
 
+    if [[ "$CI" == true ]]; then
+        # https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/advanced_usage.md#local-ca
+        proxy_service_yaml="${proxy_service_yaml} | .services.nginx.environment.USE_LOCAL_CA=1"
+    fi
+
     # https://www.baeldung.com/linux/nginx-config-environment-variables#4-a-common-pitfall
 
-    printf -v nginx_cmd "envsubst '\$\${NGINX_SERVER_NAME}' < %s >/etc/nginx/conf.d/nginx.conf \\
-&& nginx -g 'daemon off;'\n" "$nginx_container_template_file"
+    printf -v nginx_cmd \
+        "envsubst '\$\${NGINX_SERVER_NAME}' < %s > %s/nginx.conf \\
+&& /scripts/start_nginx_certbot.sh\n" \
+        "$nginx_container_template_file" "$(dirname "$nginx_container_template_file")"
 fi
 
 # HANDLE BASIC_AUTH
@@ -438,7 +452,7 @@ if [[ "$with_authelia" == false ]]; then
 
     if [[ "$proxy" == "nginx" ]]; then
         # path inside nginx container for storing basic_auth credentials
-        nginx_pass_file="/etc/nginx/conf.d/pass"
+        nginx_pass_file="/etc/nginx/user_conf.d/supabase-self-host-users"
 
         printf -v nginx_cmd "echo \"\$\${PROXY_AUTH_USERNAME}:\$\${PROXY_AUTH_PASSWORD}\" >%s \\
 && %s" $nginx_pass_file "$nginx_cmd"
@@ -465,6 +479,17 @@ if [[ "$with_authelia" == true ]]; then
             .session.cookies[0].domain=strenv(registered_domain) | 
             .session.cookies[0].authelia_url=strenv(authelia_url) |
             .session.cookies[0].default_redirection_url=strenv(redirect_url)'
+
+    server_endpoints="forward-auth"
+    implementation="ForwardAuth"
+
+    if [[ "$proxy" == "nginx" ]]; then
+        server_endpoints="auth-request"
+        implementation="AuthRequest"
+    fi
+
+    # auth implementation
+    authelia_config_file_yaml="${authelia_config_file_yaml} | .server.endpoints.authz.$server_endpoints.implementation=\"$implementation\""
 
     env_vars="${env_vars}\nAUTHELIA_SESSION_SECRET=$(gen_hex 32)\nAUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)\nAUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
 
@@ -550,6 +575,12 @@ if [[ "$proxy" == "caddy" ]]; then
 else
     mkdir -p "$(dirname "$nginx_local_template_file")"
 
+    # mounted local ./volumes/nginx/snippets to this path inside container
+    nginxSnippetsPath="/etc/nginx/user_conf.d/snippets"
+
+    # cert path inside container https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/good_to_know.md#how-the-script-add-domain-names-to-certificate-requests
+    certPath="/etc/letsencrypt/live/supabase-automated-self-host"
+
     echo "    
 upstream kong_upstream {
         server kong:8000;
@@ -557,11 +588,18 @@ upstream kong_upstream {
 }
 
 server {
-        listen 80;
-        listen [::]:80;
+	    listen 443 ssl;
+ 	    listen [::]:443 ssl;
+ 	    http2 on;
         server_name \${NGINX_SERVER_NAME};
         server_tokens off;
         proxy_http_version 1.1;
+
+        ssl_certificate         $certPath/fullchain.pem;
+        ssl_certificate_key     $certPath/privkey.pem;
+        ssl_trusted_certificate $certPath/chain.pem;
+    
+        ssl_dhparam /etc/letsencrypt/dhparams/dhparam.pem;
 
         location /realtime {
             proxy_pass http://kong_upstream;
@@ -591,16 +629,34 @@ server {
             proxy_pass http://kong_upstream;
         }
 
+        $([[ $with_authelia == true ]] && echo "
+        include $nginxSnippetsPath/authelia-location.conf;
+
+    	location /authenticate {
+	     	include $nginxSnippetsPath/proxy.conf;
+		    proxy_pass http://authelia:9091;
+	    }")
+
         location / {
             $(
         [[ $with_authelia == false ]] && echo "auth_basic \"Admin\";
             auth_basic_user_file $nginx_pass_file;
-            " || echo ""
+            " || echo "            
+            include $nginxSnippetsPath/proxy.conf;
+		    include $nginxSnippetsPath/authelia-authrequest.conf;
+            "
     )
             proxy_pass http://studio:3000;
         }
 }
-    " >"$nginx_local_template_file"
+
+server {
+    listen 80;
+	listen [::]:80;
+    server_name \${NGINX_SERVER_NAME};
+    return 301 https://\$server_name\$request_uri;
+}
+" >"$nginx_local_template_file"
 fi
 
 unset password confirmPassword
