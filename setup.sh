@@ -399,10 +399,10 @@ update_env_vars() {
 proxy_service_yaml=".services.$proxy.container_name=\"$proxy-container\" |
 .services.$proxy.restart=\"unless-stopped\" |
 .services.$proxy.ports=[\"80:80\",\"443:443\"] |
-.services.nginx.depends_on.kong.condition=\"service_healthy\"
+.services.$proxy.depends_on.kong.condition=\"service_healthy\"
 "
 if [[ "$with_authelia" == true ]]; then
-    proxy_service_yaml="${proxy_service_yaml} | .services.nginx.depends_on.authelia.condition=\"service_healthy\""
+    proxy_service_yaml="${proxy_service_yaml} | .services.$proxy.depends_on.authelia.condition=\"service_healthy\""
 fi
 
 if [[ "$proxy" == "caddy" ]]; then
