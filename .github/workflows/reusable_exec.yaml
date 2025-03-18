@@ -18,6 +18,10 @@ on:
       repo:
         type: string
         required: true
+      proxy:
+        type: string
+        required: false
+        default: caddy
 
 defaults:
   run:
@@ -31,6 +35,7 @@ jobs:
       CI: true
       ARTIFACT: ${{ inputs.artifact_name }}
       REPO: ${{ inputs.repo }}
+      PROXY: ${{ inputs.proxy }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +52,7 @@ jobs:
           with_authelia_and_redis=${{inputs.with_authelia_and_redis}}
 
           [[ "$with_authelia" == true || "$with_authelia_and_redis" == true ]] && params+=(--with-authelia)
+          [[ "$PROXY" == "nginx" ]] && params+=("--proxy nginx")
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 

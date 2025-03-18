@@ -35,7 +35,7 @@ jobs:
           skip_after_successful_duplicate: "true"
           cancel_others: "true"
 
-  build-basic-auth:
+  caddy-build-basic-auth:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
@@ -44,10 +44,10 @@ jobs:
     uses: "./.github/workflows/reusable_exec.yaml"
     with:
       runs_on: ${{matrix.os}}
-      artifact_name: "final"
+      artifact_name: "caddy_final"
       repo: ${{github.event.repository.name}}
 
-  build-with-authelia:
+  caddy-build-with-authelia:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
@@ -57,10 +57,10 @@ jobs:
     with:
       runs_on: ${{matrix.os}}
       with_authelia: true
-      artifact_name: "final_with_authelia"
+      artifact_name: "caddy_final_with_authelia"
       repo: ${{github.event.repository.name}}
 
-  build-with-authelia-and-redis:
+  caddy-build-with-authelia-and-redis:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
@@ -70,5 +70,46 @@ jobs:
     with:
       runs_on: ${{matrix.os}}
       with_authelia_and_redis: true
-      artifact_name: "final_with_authelia_and_redis"
+      artifact_name: "caddy_final_with_authelia_and_redis"
       repo: ${{github.event.repository.name}}
+
+  nginx-build-basic-auth:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    uses: "./.github/workflows/reusable_exec.yaml"
+    with:
+      runs_on: ${{matrix.os}}
+      artifact_name: "nginx_final"
+      repo: ${{github.event.repository.name}}
+      proxy: nginx
+
+  nginx-build-with-authelia:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    uses: "./.github/workflows/reusable_exec.yaml"
+    with:
+      runs_on: ${{matrix.os}}
+      with_authelia: true
+      artifact_name: "nginx_final_with_authelia"
+      repo: ${{github.event.repository.name}}
+      proxy: nginx
+
+  nginx-build-with-authelia-and-redis:
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    uses: "./.github/workflows/reusable_exec.yaml"
+    with:
+      runs_on: ${{matrix.os}}
+      with_authelia_and_redis: true
+      artifact_name: "nginx_final_with_authelia_and_redis"
+      repo: ${{github.event.repository.name}}
+      proxy: nginx
