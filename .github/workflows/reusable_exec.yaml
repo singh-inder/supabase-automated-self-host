@@ -65,7 +65,11 @@ jobs:
           cd docker
           docker compose kill &> /dev/null
           cd ../../
-          sudo tar --exclude "$REPO/docker/volumes/db/data" --exclude "$REPO/docker/volumes/caddy" --exclude "$REPO/.git" \
+          sudo tar --exclude "$REPO/docker/volumes/db/data" \
+          --exclude "$REPO/docker/volumes/caddy/caddy_data" \
+          --exclude "$REPO/docker/volumes/caddy/caddy_config" \
+          --exclude "$REPO/docker/volumes/nginx/letsencrypt" \
+          --exclude "$REPO/.git" \
           -czvf ~/"$ARTIFACT".tar.gz "$REPO" > /dev/null
 
       - name: Upload generated tarball
