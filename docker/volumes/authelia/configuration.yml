@@ -7,8 +7,6 @@ server:
   address: "tcp://:9091/authenticate"
   endpoints:
     authz:
-      forward-auth:
-        implementation: "ForwardAuth"
 
 totp:
   disable: false

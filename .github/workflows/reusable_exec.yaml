@@ -18,6 +18,10 @@ on:
       repo:
         type: string
         required: true
+      proxy:
+        type: string
+        required: false
+        default: caddy
 
 defaults:
   run:
@@ -31,6 +35,7 @@ jobs:
       CI: true
       ARTIFACT: ${{ inputs.artifact_name }}
       REPO: ${{ inputs.repo }}
+      PROXY: ${{ inputs.proxy }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +52,7 @@ jobs:
           with_authelia_and_redis=${{inputs.with_authelia_and_redis}}
 
           [[ "$with_authelia" == true || "$with_authelia_and_redis" == true ]] && params+=(--with-authelia)
+          [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
@@ -59,7 +65,11 @@ jobs:
           cd docker
           docker compose kill &> /dev/null
           cd ../../
-          sudo tar --exclude "$REPO/docker/volumes/db/data" --exclude "$REPO/docker/volumes/caddy" --exclude "$REPO/.git" \
+          sudo tar --exclude "$REPO/docker/volumes/db/data" \
+          --exclude "$REPO/docker/volumes/caddy/caddy_data" \
+          --exclude "$REPO/docker/volumes/caddy/caddy_config" \
+          --exclude "$REPO/docker/volumes/nginx/letsencrypt" \
+          --exclude "$REPO/.git" \
           -czvf ~/"$ARTIFACT".tar.gz "$REPO" > /dev/null
 
       - name: Upload generated tarball

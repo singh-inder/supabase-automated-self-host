@@ -33,6 +33,69 @@ error_exit() {
 # https://stackoverflow.com/a/18216122/18954618
 if [ "$EUID" -ne 0 ]; then error_exit "Please run this script as root user"; fi
 
+usage() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Self-host Supabase with nginx/caddy and authelia 2FA with just ONE bash script."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help           Show this help message and exit"
+    echo "  --proxy PROXY        Set the reverse proxy to use (nginx or caddy). Default: caddy"
+    echo "  --with-authelia      Enable or disable Authelia 2FA support"
+    echo ""
+    echo "Examples:"
+    echo "  $0 --proxy nginx --with-authelia    # Set up Supabase with nginx and Authelia 2FA"
+    echo "  $0 --proxy caddy                    # Set up Supabase with caddy and no 2FA"
+    echo ""
+    echo "For more information, visit the project repository:"
+    echo "https://github.com/singh-inder/supabase-automated-self-host"
+}
+
+has_argument() {
+    [[ ("$1" == *=* && -n ${1#*=}) || (-n "$2" && "$2" != -*) ]]
+}
+
+extract_argument() { echo "${2:-${1#*=}}"; }
+
+with_authelia=false
+proxy="caddy"
+
+# https://medium.com/@wujido20/handling-flags-in-bash-scripts-4b06b4d0ed04
+while [ $# -gt 0 ]; do
+    case "$1" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+
+    --with-authelia)
+        with_authelia=true
+        ;;
+
+    --proxy)
+        if has_argument "$@"; then
+            proxy="$(extract_argument "$@")"
+            shift
+        fi
+        ;;
+
+    *)
+        echo -e "ERROR: ${RED}Invalid option:${NO_COLOR} $1" >&2
+        usage
+        exit 1
+        ;;
+    esac
+    shift
+done
+
+if [[ "$proxy" != "caddy" && "$proxy" != "nginx" ]]; then
+    error_exit "proxy can only be caddy or nginx"
+fi
+
+info_log "Configuration Summary"
+echo -e "  ${GREEN}Proxy:${NO_COLOR} ${proxy}"
+echo -e "  ${GREEN}Authelia 2FA:${NO_COLOR} ${with_authelia}"
+
 detect_arch() {
     case $(uname -m) in
     x86_64) echo "amd64" ;;
@@ -57,9 +120,6 @@ arch="$(detect_arch)"
 
 if [[ "$os" == "err" ]]; then error_exit "This script only supports linux os"; fi
 if [[ "$arch" == "err" ]]; then error_exit "Unsupported cpu architecture"; fi
-
-with_authelia=false
-if [[ "$#" -gt 0 && "$1" == "--with-authelia" ]]; then with_authelia=true; fi
 
 packages=(curl wget jq openssl git)
 
@@ -156,6 +216,12 @@ while [ -z "$domain" ]; do
 
     if ! protocol="$(url-parser --url "$domain" --get scheme 2>/dev/null)"; then
         error_log "Couldn't extract protocol. Please check the url you entered.\n"
+        domain=""
+        continue
+    fi
+
+    if ! host="$(url-parser --url "$domain" --get host 2>/dev/null)"; then
+        error_log "Couldn't extract url host. Please check the url you entered.\n"
         domain=""
         continue
     fi
@@ -323,12 +389,88 @@ update_yaml_file() {
 compose_file="docker-compose.yml"
 env_vars=""
 
-if [[ "$with_authelia" == false ]]; then
-    env_vars="${env_vars}\nCADDY_AUTH_USERNAME=$username\nCADDY_AUTH_PASSWORD='$password'"
+update_env_vars() {
+    for env_key_value in "$@"; do
+        env_vars="${env_vars}\n$env_key_value"
+    done
+}
 
-    update_yaml_file ".services.caddy.environment.CADDY_AUTH_USERNAME = \"\${CADDY_AUTH_USERNAME?:error}\" |
-           .services.caddy.environment.CADDY_AUTH_PASSWORD = \"\${CADDY_AUTH_PASSWORD?:error}\"" "$compose_file"
+# START DEFINING proxy_service_yaml
+proxy_service_yaml=".services.$proxy.container_name=\"$proxy-container\" |
+.services.$proxy.restart=\"unless-stopped\" |
+.services.$proxy.ports=[\"80:80\",\"443:443\"] |
+.services.$proxy.depends_on.kong.condition=\"service_healthy\"
+"
+if [[ "$with_authelia" == true ]]; then
+    proxy_service_yaml="${proxy_service_yaml} | .services.$proxy.depends_on.authelia.condition=\"service_healthy\""
+fi
+
+if [[ "$proxy" == "caddy" ]]; then
+    caddy_local_volume="./volumes/caddy"
+    caddyfile_local="$caddy_local_volume/Caddyfile"
+
+    proxy_service_yaml="${proxy_service_yaml} |
+                        .services.caddy.image=\"caddy:2.9.1\" |
+                        .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
+                        .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",\"$caddy_local_volume/caddy_data:/data\",\"$caddy_local_volume/caddy_config:/config\"]
+                       "
 else
+    update_env_vars "NGINX_SERVER_NAME=$host"
+    # docker compose nginx service command directive. Passed via yq strenv
+    nginx_cmd=""
+
+    nginx_local_volume="./volumes/nginx"
+    # path in local fs where nginx template file is stored
+    nginx_local_template_file="$nginx_local_volume/nginx.template"
+
+    # path inside container where template file will be mounted
+    nginx_container_template_file="/etc/nginx/user_conf.d/nginx.template"
+
+    # Pass an array of args to nginx service command directive https://stackoverflow.com/a/57821785/18954618
+    # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
+
+    proxy_service_yaml="${proxy_service_yaml} |
+                        .services.nginx.image=\"jonasal/nginx-certbot:5.4.1-nginx1.27.4\" |
+                        .services.nginx.volumes=[\"$nginx_local_volume:/etc/nginx/user_conf.d\",\"$nginx_local_volume/letsencrypt:/etc/letsencrypt\"] |
+                        .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
+                        .services.nginx.environment.CERTBOT_EMAIL=\"your@email.org\" |
+                        .services.nginx.command=[\"/bin/bash\",\"-c\",strenv(nginx_cmd)]
+                       "
+
+    if [[ "$CI" == true ]]; then
+        # https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/advanced_usage.md#local-ca
+        proxy_service_yaml="${proxy_service_yaml} | .services.nginx.environment.USE_LOCAL_CA=1"
+    fi
+
+    # https://www.baeldung.com/linux/nginx-config-environment-variables#4-a-common-pitfall
+
+    printf -v nginx_cmd \
+        "envsubst '\$\${NGINX_SERVER_NAME}' < %s > %s/nginx.conf \\
+&& /scripts/start_nginx_certbot.sh\n" \
+        "$nginx_container_template_file" "$(dirname "$nginx_container_template_file")"
+fi
+
+# HANDLE BASIC_AUTH
+if [[ "$with_authelia" == false ]]; then
+    update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD='$password'"
+
+    proxy_service_yaml="${proxy_service_yaml} | 
+                        .services.$proxy.environment.PROXY_AUTH_USERNAME = \"\${PROXY_AUTH_USERNAME:?error}\" |
+                        .services.$proxy.environment.PROXY_AUTH_PASSWORD = \"\${PROXY_AUTH_PASSWORD:?error}\"
+                        "
+
+    if [[ "$proxy" == "nginx" ]]; then
+        # path inside nginx container for storing basic_auth credentials
+        nginx_pass_file="/etc/nginx/user_conf.d/supabase-self-host-users"
+
+        printf -v nginx_cmd "echo \"\$\${PROXY_AUTH_USERNAME}:\$\${PROXY_AUTH_PASSWORD}\" >%s \\
+&& %s" $nginx_pass_file "$nginx_cmd"
+    fi
+fi
+
+nginx_cmd="${nginx_cmd:=""}" update_yaml_file "$proxy_service_yaml" "$compose_file"
+
+if [[ "$with_authelia" == true ]]; then
     # Dynamically update yaml path from env https://github.com/mikefarah/yq/discussions/1253
     # https://mikefarah.gitbook.io/yq/operators/style
 
@@ -342,14 +484,23 @@ else
                .. style="double" | 
                eval(strenv(yaml_path)).disabled = false' >./volumes/authelia/users_database.yml
 
-    host="$(url-parser --url "$domain" --get host)"
-
     authelia_config_file_yaml='.access_control.rules[0].domain=strenv(host) | 
             .session.cookies[0].domain=strenv(registered_domain) | 
             .session.cookies[0].authelia_url=strenv(authelia_url) |
             .session.cookies[0].default_redirection_url=strenv(redirect_url)'
 
-    env_vars="${env_vars}\nAUTHELIA_SESSION_SECRET=$(gen_hex 32)\nAUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)\nAUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
+    server_endpoints="forward-auth"
+    implementation="ForwardAuth"
+
+    if [[ "$proxy" == "nginx" ]]; then
+        server_endpoints="auth-request"
+        implementation="AuthRequest"
+    fi
+
+    # auth implementation
+    authelia_config_file_yaml="${authelia_config_file_yaml} | .server.endpoints.authz.$server_endpoints.implementation=\"$implementation\""
+
+    update_env_vars "AUTHELIA_SESSION_SECRET=$(gen_hex 32)" "AUTHELIA_STORAGE_ENCRYPTION_KEY=$(gen_hex 32)" "AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET=$(gen_hex 32)"
 
     # shellcheck disable=SC2016
     authelia_docker_service_yaml='.services.authelia.container_name = "authelia" |
@@ -396,10 +547,13 @@ fi
 
 echo -e "$env_vars" >>.env
 
-# https://stackoverflow.com/a/3953712/18954618
-echo -e "{\$DOMAIN} {
+if [[ "$proxy" == "caddy" ]]; then
+    mkdir -p "$caddy_local_volume"
+
+    # https://stackoverflow.com/a/3953712/18954618
+    echo "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/*
+        @supa_api path /rest/* /auth/* /realtime/* /storage/* /functions/*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -417,7 +571,7 @@ echo -e "{\$DOMAIN} {
 
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
-			    {\$CADDY_AUTH_USERNAME} {\$CADDY_AUTH_PASSWORD}
+			    {\$PROXY_AUTH_USERNAME} {\$PROXY_AUTH_PASSWORD}
 		    }" || echo "forward_auth authelia:9091 {
                         uri /api/authz/forward-auth
 
@@ -428,7 +582,101 @@ echo -e "{\$DOMAIN} {
 	    }
       	
         header -server
-}" >Caddyfile
+}" >"$caddyfile_local"
+else
+    mkdir -p "$(dirname "$nginx_local_template_file")"
+
+    # mounted local ./volumes/nginx/snippets to this path inside container
+    nginxSnippetsPath="/etc/nginx/user_conf.d/snippets"
+
+    # cert path inside container https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/good_to_know.md#how-the-script-add-domain-names-to-certificate-requests
+    certPath="/etc/letsencrypt/live/supabase-automated-self-host"
+
+    echo "    
+upstream kong_upstream {
+        server kong:8000;
+        keepalive 2;
+}
+
+server {
+	    listen 443 ssl;
+ 	    listen [::]:443 ssl;
+ 	    http2 on;
+        server_name \${NGINX_SERVER_NAME};
+        server_tokens off;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host \$host;
+        proxy_set_header X-Original-URL \$scheme://\$http_host\$request_uri;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$http_host;
+        proxy_set_header X-Forwarded-URI \$request_uri;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Real-IP \$remote_addr;
+
+        ssl_certificate         $certPath/fullchain.pem;
+        ssl_certificate_key     $certPath/privkey.pem;
+        ssl_trusted_certificate $certPath/chain.pem;
+    
+        ssl_dhparam /etc/letsencrypt/dhparams/dhparam.pem;
+
+        location /realtime {
+            proxy_pass http://kong_upstream;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \"upgrade\";
+            proxy_read_timeout 3600s;
+        }
+
+        location /storage {
+            client_max_body_size 0;
+            proxy_pass http://kong_upstream;
+        }
+
+    	location /goapi/ {
+		    proxy_pass http://kong_upstream/;
+	    }
+
+        location /rest {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /auth {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /functions {
+            proxy_pass http://kong_upstream;
+        }
+
+        $([[ $with_authelia == true ]] && echo "
+        include $nginxSnippetsPath/authelia-location.conf;
+
+    	location /authenticate {
+	     	include $nginxSnippetsPath/proxy.conf;
+		    proxy_pass http://authelia:9091;
+	    }")
+
+        location / {
+            $(
+        [[ $with_authelia == false ]] && echo "auth_basic \"Admin\";
+            auth_basic_user_file $nginx_pass_file;
+            " || echo "            
+            include $nginxSnippetsPath/proxy.conf;
+		    include $nginxSnippetsPath/authelia-authrequest.conf;
+            "
+    )
+            proxy_pass http://studio:3000;
+        }
+}
+
+server {
+    listen 80;
+	listen [::]:80;
+    server_name \${NGINX_SERVER_NAME};
+    return 301 https://\$server_name\$request_uri;
+}
+" >"$nginx_local_template_file"
+fi
 
 unset password confirmPassword
 if [ -n "$SUDO_USER" ]; then chown -R "$SUDO_USER": .; fi
