@@ -406,10 +406,13 @@ if [[ "$with_authelia" == true ]]; then
 fi
 
 if [[ "$proxy" == "caddy" ]]; then
+    caddy_local_volume="./volumes/caddy"
+    caddyfile_local="$caddy_local_volume/Caddyfile"
+
     proxy_service_yaml="${proxy_service_yaml} |
                         .services.caddy.image=\"caddy:2.9.1\" |
                         .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
-                        .services.caddy.volumes=[\"./Caddyfile:/etc/caddy/Caddyfile\",\"./volumes/caddy/caddy_data:/data\",\"./volumes/caddy/caddy_config:/config\"]
+                        .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",\"$caddy_local_volume/caddy_data:/data\",\"$caddy_local_volume/caddy_config:/config\"]
                        "
 else
     update_env_vars "NGINX_SERVER_NAME=$host"
@@ -545,10 +548,12 @@ fi
 echo -e "$env_vars" >>.env
 
 if [[ "$proxy" == "caddy" ]]; then
+    mkdir -p "$caddy_local_volume"
+
     # https://stackoverflow.com/a/3953712/18954618
     echo "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /storage/v1/* /functions/v1/*
+        @supa_api path /rest/* /auth/* /realtime/* /storage/* /functions/*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -577,7 +582,7 @@ if [[ "$proxy" == "caddy" ]]; then
 	    }
       	
         header -server
-}" >Caddyfile
+}" >"$caddyfile_local"
 else
     mkdir -p "$(dirname "$nginx_local_template_file")"
 
