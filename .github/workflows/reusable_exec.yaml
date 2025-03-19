@@ -52,7 +52,7 @@ jobs:
           with_authelia_and_redis=${{inputs.with_authelia_and_redis}}
 
           [[ "$with_authelia" == true || "$with_authelia_and_redis" == true ]] && params+=(--with-authelia)
-          [[ "$PROXY" == "nginx" ]] && params+=("--proxy nginx")
+          [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 

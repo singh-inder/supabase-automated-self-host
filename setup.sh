@@ -601,6 +601,14 @@ server {
         server_tokens off;
         proxy_http_version 1.1;
 
+        proxy_set_header Host \$host;
+        proxy_set_header X-Original-URL \$scheme://\$http_host\$request_uri;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Host \$http_host;
+        proxy_set_header X-Forwarded-URI \$request_uri;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+        proxy_set_header X-Real-IP \$remote_addr;
+
         ssl_certificate         $certPath/fullchain.pem;
         ssl_certificate_key     $certPath/privkey.pem;
         ssl_trusted_certificate $certPath/chain.pem;
@@ -615,7 +623,7 @@ server {
         }
 
         location /storage {
-            client_max_body_size 100M;
+            client_max_body_size 0;
             proxy_pass http://kong_upstream;
         }
 
