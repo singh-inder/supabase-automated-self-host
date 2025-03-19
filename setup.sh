@@ -332,12 +332,18 @@ fi
 
 info_log "Finishing..."
 
+# in caddy basic_auth, hashed password is loaded in memory
+# in nginx basic_auth, websites slows down a lot if bcrypt rounds number is high as the hashed password file is checked again and again on every request.
+# This is only applicable when using basic_auth, not with authelia
+bcryptRounds=12
+if [[ "$proxy" == "nginx" && "$with_authelia" == false ]]; then bcryptRounds=6; fi
+
 # https://www.baeldung.com/linux/bcrypt-hash#using-htpasswd
-password=$(htpasswd -bnBC 12 "" "$password" | cut -d : -f 2)
+password=$(htpasswd -bnBC "$bcryptRounds" "" "$password" | cut -d : -f 2)
 
 gen_hex() { openssl rand -hex "$1"; }
 
-jwt_secret=$(gen_hex 20)
+jwt_secret="$(gen_hex 20)"
 
 base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 
