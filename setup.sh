@@ -160,7 +160,7 @@ directory="$(basename "$repoUrl")"
 if [ -d "$directory" ]; then
     info_log "$directory directory present, skipping git clone"
 else
-    git clone "$repoUrl" "$directory"
+    git clone --depth=1 "$repoUrl" "$directory"
 fi
 
 if ! cd "$directory"/docker; then error_exit "Unable to access $directory/docker directory"; fi
