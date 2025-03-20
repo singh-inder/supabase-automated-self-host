@@ -160,7 +160,7 @@ directory="$(basename "$repoUrl")"
 if [ -d "$directory" ]; then
     info_log "$directory directory present, skipping git clone"
 else
-    git clone "$repoUrl" "$directory"
+    git clone --depth=1 "$repoUrl" "$directory"
 fi
 
 if ! cd "$directory"/docker; then error_exit "Unable to access $directory/docker directory"; fi
@@ -343,7 +343,7 @@ password=$(htpasswd -bnBC "$bcryptRounds" "" "$password" | cut -d : -f 2)
 
 gen_hex() { openssl rand -hex "$1"; }
 
-jwt_secret=$(gen_hex 20)
+jwt_secret="$(gen_hex 20)"
 
 base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 
