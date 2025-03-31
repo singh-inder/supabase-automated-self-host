@@ -1,1 +1,2 @@
 docker/volumes/**/*
+docker/docker-compose.s3.yml

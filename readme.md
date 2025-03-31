@@ -61,7 +61,7 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
    - **Enter your domain:** Enter the domain name where you want to access the supabase dashboard or make api calls. Make sure to specify the `http` or `https` protocol.
      For example: `https://supabase.example.com`
 
-     ⭐ If you're want to setup supabase locally, refer to this [Guide](https://github.com/singh-inder/supabase-automated-self-host/discussions/6)
+     ⭐ If you want to setup supabase locally, refer to this [Guide](https://github.com/singh-inder/supabase-automated-self-host/discussions/6)
 
    - **Enter username:** Enter your username.
 
@@ -75,7 +75,9 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
 
    The following additional prompts have to be answered only if you've enabled `--with-authelia` flag:
 
-   - **Enter email:** Used by authelia for setting up 2-factor auth / reset password flow. If you're not going to setup an SMTP server, you can enter any email here. (When not using SMTP server, you can easily view codes sent by authelia in `docker/volumes/authelia/notifications.txt`)
+   - **Enter email:** Used by authelia for setting up 2-factor auth / reset password flow.
+
+     ⭐ If you're not going to setup an SMTP server, you can enter any email here. When not using SMTP server, you can easily view codes sent by authelia in `docker/volumes/authelia/notifications.txt`
 
    - **Enter Display Name:** Used by authelia in emails and [dashboard](https://gist.github.com/user-attachments/assets/a7a4c0b8-920e-4b61-9bb5-1cae26d5bbe9).
 
@@ -83,7 +85,7 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
 
 Thats it!
 
-After script completes successfully, cd into `supabase/docker` directory and run `docker compose up -d`. Wait for containers to be healthy and you're good to go. To access dashboard outside your network, make sure that your firewall allows traffic on port 80 and 443.
+After script completes successfully, cd into `supabase-automated-self-host/docker` directory and run `docker compose up -d`. Wait for containers to be healthy and you're good to go. To access dashboard outside your network, make sure that your firewall allows traffic on ports 80 and 443.
 
 ## How this differs from coolify:
 
