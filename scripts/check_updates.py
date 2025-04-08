@@ -50,23 +50,24 @@ def get_repo_files(
         repoFiles.append(c)
 
 
-def check_minio_updates(f: io.TextIOWrapper):
-    services = yaml.safe_load(f).get("services")
-    images: list[str] = [services[s]["image"] for s in services if "minio" in s]
-    data = ""
+def check_minio_updates(file_path: str):
+    with open(file_path) as f:
+        services = yaml.safe_load(f).get("services")
+        images: list[str] = [services[s]["image"] for s in services if "minio" in s]
+        data = ""
 
-    for image in images:
-        try:
-            repo, current_tag = image.split(":", maxsplit=1)
-            latest_tag = os.path.basename(
-                Github().get_repo(repo).get_latest_release().html_url
-            )
-            if current_tag != latest_tag:
-                data += f"<h2>{repo}: {latest_tag}</h2><br/>"
-        except Exception as err:
-            raise SystemExit(f"ERROR in download taskgroup: {err}")
+        for image in images:
+            try:
+                repo, current_tag = image.split(":", maxsplit=1)
+                latest_tag = os.path.basename(
+                    Github().get_repo(repo).get_latest_release().html_url
+                )
+                if current_tag != latest_tag:
+                    data += f"<h2>{repo}: {latest_tag}</h2><br/>"
+            except Exception as err:
+                raise SystemExit(f"ERROR in download taskgroup: {err}")
 
-    return data
+        return data
 
 
 async def main():
@@ -105,7 +106,7 @@ async def main():
     ]
 
     extra_files: List[str] = []
-    html_head, html_body = "", ""
+    html_head, html_body, minio_update = "", "", ""
     legends_table_html, legends_selector = "", "table[summary='Legends']"
 
     for remote_file_path in remote_files:
@@ -119,12 +120,12 @@ async def main():
             extra_files.append(remote_file_path)
             continue
 
+        if os.path.basename(local_file_path) == "docker-compose.s3.yml":
+            minio_update = check_minio_updates(local_file_path)
+
         with open(remote_file_path, "r") as remote_file:
             try:
                 with open(local_file_path, "r") as local_file:
-                    if os.path.basename(local_file_path) == "docker-compose.s3.yml":
-                        html_body = check_minio_updates(local_file) + html_body
-
                     local_lines = local_file.read().splitlines()
                     remote_lines = remote_file.read().splitlines()
 
@@ -168,6 +169,7 @@ async def main():
         <html>
         {html_head}
         <body>
+        {minio_update}
         {"" if len(extra_files) == 0 else f"<h1>extraFiles={str(extra_files)}</h1><br>"}
         {html_body}
         {legends_table_html}
