@@ -60,7 +60,7 @@ jobs:
         run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
 
       - name: Test containers with minio storage
-        run: cd docker && docker compose -f docker-compose.yml docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
+        run: cd docker && docker compose kill && docker compose down && docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
 
       - name: Generate tar
         run: |

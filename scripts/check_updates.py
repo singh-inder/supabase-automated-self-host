@@ -62,7 +62,7 @@ def check_minio_updates(f: io.TextIOWrapper):
                 Github().get_repo(repo).get_latest_release().html_url
             )
             if current_tag != latest_tag:
-                data += f"<h1>{repo}: {latest_tag}</h1><br/>"
+                data += f"<h2>{repo}: {latest_tag}</h2><br/>"
         except Exception as err:
             raise SystemExit(f"ERROR in download taskgroup: {err}")
 
@@ -124,7 +124,6 @@ async def main():
                 with open(local_file_path, "r") as local_file:
                     if os.path.basename(local_file_path) == "docker-compose.s3.yml":
                         html_body = check_minio_updates(local_file) + html_body
-                        continue
 
                     local_lines = local_file.read().splitlines()
                     remote_lines = remote_file.read().splitlines()
