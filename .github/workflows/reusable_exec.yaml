@@ -56,8 +56,11 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
-      - name: Init & wait for containers to be healthy
+      - name: Test containers
         run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
+
+      - name: Test containers with minio storage
+        run: cd docker && docker compose kill && docker compose down && docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
 
       - name: Generate tar
         run: |
@@ -69,6 +72,7 @@ jobs:
           --exclude "$REPO/docker/volumes/caddy/caddy_data" \
           --exclude "$REPO/docker/volumes/caddy/caddy_config" \
           --exclude "$REPO/docker/volumes/nginx/letsencrypt" \
+          --exclude "$REPO/docker/volumes/storage" \
           --exclude "$REPO/.git" \
           -czvf ~/"$ARTIFACT".tar.gz "$REPO" > /dev/null
 
