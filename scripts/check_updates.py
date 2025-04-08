@@ -11,6 +11,7 @@ from typing import List
 import htmlmin
 from bs4 import BeautifulSoup
 from github import Github, Repository, ContentFile
+import yaml
 
 
 async def download(
@@ -47,6 +48,25 @@ def get_repo_files(
                 get_repo_files(repo, c.path, repoFiles, recursive)
             continue
         repoFiles.append(c)
+
+
+def check_minio_updates(f: io.TextIOWrapper):
+    services = yaml.safe_load(f).get("services")
+    images: list[str] = [services[s]["image"] for s in services if "minio" in s]
+    data = ""
+
+    for image in images:
+        try:
+            repo, current_tag = image.split(":", maxsplit=1)
+            latest_tag = os.path.basename(
+                Github().get_repo(repo).get_latest_release().html_url
+            )
+            if current_tag != latest_tag:
+                data += f"<h1>{repo}: {latest_tag}</h1><br/>"
+        except Exception as err:
+            raise SystemExit(f"ERROR in download taskgroup: {err}")
+
+    return data
 
 
 async def main():
@@ -102,6 +122,10 @@ async def main():
         with open(remote_file_path, "r") as remote_file:
             try:
                 with open(local_file_path, "r") as local_file:
+                    if os.path.basename(local_file_path) == "docker-compose.s3.yml":
+                        html_body = check_minio_updates(local_file) + html_body
+                        continue
+
                     local_lines = local_file.read().splitlines()
                     remote_lines = remote_file.read().splitlines()
 
