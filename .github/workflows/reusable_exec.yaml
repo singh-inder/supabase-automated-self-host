@@ -56,11 +56,60 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dotenv-cli,psql
+        run: sudo apt install -y postgresql-client && npm install -g dotenv-cli
+
+      - name: Update /etc/hosts
+        run: |
+          set -ex
+          host="$(dotenv -e docker/.env -p SUPABASE_PUBLIC_URL)"
+          host="$(url-parser --url "$host" --get host)"
+          sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
+
       - name: Test containers
         run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
 
+      - name: Setup db
+        run: |
+          set -ex
+          # https://github.com/supabase/supabase/issues/29892#issuecomment-2419319879
+          POOLER_TENANT_ID="$(dotenv -e docker/.env -p POOLER_TENANT_ID)"
+          PGPASSWORD="$(dotenv -e docker/.env -p POSTGRES_PASSWORD)" \
+            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
+
+      - name: Run tests
+        run: |
+          set -ex
+          SUPABASE_PUBLIC_URL="$(dotenv -e docker/.env -p SUPABASE_PUBLIC_URL)"
+          SERVICE_ROLE_KEY="$(dotenv -e docker/.env -p SERVICE_ROLE_KEY)"
+          cd test && npm ci
+          SUPABASE_PUBLIC_URL="$SUPABASE_PUBLIC_URL" SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test -- run
+
       - name: Test containers with minio storage
-        run: cd docker && docker compose kill && docker compose down && docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
+        run: |
+          set -ex
+          cd docker && docker compose kill && docker compose down 
+          sudo rm -r volumes/db/data
+          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
+
+      - name: Setup db
+        run: |
+          set -ex
+          POOLER_TENANT_ID="$(dotenv -e docker/.env -p POOLER_TENANT_ID)"
+          PGPASSWORD="$(dotenv -e docker/.env -p POSTGRES_PASSWORD)" \
+            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
+
+      - name: Run tests
+        run: |
+          set -ex
+          SUPABASE_PUBLIC_URL="$(dotenv -e docker/.env -p SUPABASE_PUBLIC_URL)"
+          SERVICE_ROLE_KEY="$(dotenv -e docker/.env -p SERVICE_ROLE_KEY)"
+          cd test && npm ci
+          SUPABASE_PUBLIC_URL="$SUPABASE_PUBLIC_URL" SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" npm run test -- run
 
       - name: Generate tar
         run: |
