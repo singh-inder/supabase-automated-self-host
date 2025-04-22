@@ -56,11 +56,91 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install psql
+        run: sudo apt install -y postgresql-client
+
+        # https://stackoverflow.com/a/57969570/18954618
+      - name: set env vars
+        run: |
+          set -e
+
+          read_env_var(){
+            node --env-file docker/.env -e "console.log(process.env.$1)"
+          }
+
+          echo "SUPABASE_PUBLIC_URL=$(read_env_var SUPABASE_PUBLIC_URL)" >> $GITHUB_ENV
+          echo "POOLER_TENANT_ID=$(read_env_var POOLER_TENANT_ID)" >> $GITHUB_ENV
+          echo "POSTGRES_PASSWORD=$(read_env_var POSTGRES_PASSWORD)" >> $GITHUB_ENV
+          echo "PROXY_AUTH_USERNAME=$(read_env_var PROXY_AUTH_USERNAME)" >> $GITHUB_ENV
+          echo "PROXY_AUTH_PASSWORD=$(read_env_var PROXY_AUTH_PASSWORD)" >> $GITHUB_ENV
+          echo "SERVICE_ROLE_KEY=$(read_env_var SERVICE_ROLE_KEY)" >> $GITHUB_ENV
+
+      - name: Update /etc/hosts
+        run: |
+          set -ex
+          host="$(url-parser --url "$SUPABASE_PUBLIC_URL" --get host)"
+          sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
+
       - name: Test containers
         run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
 
-      - name: Test containers with minio storage
-        run: cd docker && docker compose kill && docker compose down && docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
+      - name: Setup db
+        run: |
+          set -e
+          # https://github.com/supabase/supabase/issues/29892#issuecomment-2419319879
+          PGPASSWORD="$POSTGRES_PASSWORD" \
+            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
+
+      # when using nginx proxy, the image first generates http certs and then start nginx
+      # and it takes some time, to generate the certs.
+      # curl is not present inside the image, that's why can't do this via docker healthcheck
+      - name: Healthcheck if nginx
+        if: inputs.proxy == 'nginx'
+        run: |
+          set -e
+          retries=10
+
+          authParams=()
+          if [ -n "$PROXY_AUTH_USERNAME" ]; then authParams+=(-u "$PROXY_AUTH_USERNAME:password");fi
+
+          for ((i = 0; i < "$retries"; i++)); do
+            if curl -kL --fail "${authParams[@]}" "$SUPABASE_PUBLIC_URL" > /dev/null; then
+              break
+            else
+              if [ "$i" -eq "$(("$retries" - 1))" ]; then exit 1; fi
+              sleep 30
+            fi
+          done
+
+      - name: Run tests
+        run: |
+          set -ex
+          # envs set inside set env vars step
+          cd test && npm ci && npm run test -- run
+
+      - name: Reset db & Test containers with minio storage
+        run: |
+          set -ex
+          cd docker && docker compose kill && docker compose down 
+          sudo rm -r volumes/db/data
+          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
+
+      - name: Setup db
+        run: |
+          set -e
+
+          PGPASSWORD="$POSTGRES_PASSWORD" \
+            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
+
+      - name: Run tests
+        run: |
+          set -ex
+          # envs set inside set env vars step
+          cd test && npm run test -- run
 
       - name: Generate tar
         run: |
@@ -73,6 +153,7 @@ jobs:
           --exclude "$REPO/docker/volumes/caddy/caddy_config" \
           --exclude "$REPO/docker/volumes/nginx/letsencrypt" \
           --exclude "$REPO/docker/volumes/storage" \
+          --exclude "$REPO/test" \
           --exclude "$REPO/.git" \
           -czvf ~/"$ARTIFACT".tar.gz "$REPO" > /dev/null
 

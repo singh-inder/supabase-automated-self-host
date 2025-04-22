@@ -1,2 +1,3 @@
 scripts/remote
 .venv
+node_modules
