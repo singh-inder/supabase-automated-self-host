@@ -10,7 +10,7 @@ When using nginx, this project leverages [docker-nginx-certbot](https://github.c
 
 - **A Linux Machine with docker installed**: This can be a server or any personal computer running Linux with at least 1 GB RAM and 25 GB Disk space. **The script has been tested only on Linux/WSL.**
 
-- **Own Domain (optional)**: Required only if you're going to expose supabase services to the internet. You can get one for free from [noip](https://www.noip.com) or [freemyip](https://freemyip.com). Otherwise you can also run supabase locally (more on this in setup instructions)
+- **Own Domain (optional)**: Required only if you're going to expose supabase services to the internet. You can get one for free from [freemyip](https://freemyip.com). Otherwise you can also run supabase locally (more on this in setup instructions)
 
 ## Setup Instructions
 
