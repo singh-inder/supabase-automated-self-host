@@ -416,7 +416,7 @@ if [[ "$proxy" == "caddy" ]]; then
     caddyfile_local="$caddy_local_volume/Caddyfile"
 
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.caddy.image=\"caddy:2.9.1\" |
+                        .services.caddy.image=\"caddy:2.10.0\" |
                         .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
                         .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",\"$caddy_local_volume/caddy_data:/data\",\"$caddy_local_volume/caddy_config:/config\"]
                        "
@@ -436,7 +436,7 @@ else
     # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
 
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.nginx.image=\"jonasal/nginx-certbot:5.4.1-nginx1.27.4\" |
+                        .services.nginx.image=\"jonasal/nginx-certbot:5.5.0-nginx1.27.5\" |
                         .services.nginx.volumes=[\"$nginx_local_volume:/etc/nginx/user_conf.d\",\"$nginx_local_volume/letsencrypt:/etc/letsencrypt\"] |
                         .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
                         .services.nginx.environment.CERTBOT_EMAIL=\"your@email.org\" |
