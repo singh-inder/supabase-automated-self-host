@@ -68,16 +68,11 @@ jobs:
         run: |
           set -e
 
-          read_env_var(){
-            node --env-file docker/.env -e "console.log(process.env.$1)"
-          }
+          envVars=(SUPABASE_PUBLIC_URL POOLER_TENANT_ID POSTGRES_PASSWORD PROXY_AUTH_USERNAME SERVICE_ROLE_KEY)
 
-          echo "SUPABASE_PUBLIC_URL=$(read_env_var SUPABASE_PUBLIC_URL)" >> $GITHUB_ENV
-          echo "POOLER_TENANT_ID=$(read_env_var POOLER_TENANT_ID)" >> $GITHUB_ENV
-          echo "POSTGRES_PASSWORD=$(read_env_var POSTGRES_PASSWORD)" >> $GITHUB_ENV
-          echo "PROXY_AUTH_USERNAME=$(read_env_var PROXY_AUTH_USERNAME)" >> $GITHUB_ENV
-          echo "PROXY_AUTH_PASSWORD=$(read_env_var PROXY_AUTH_PASSWORD)" >> $GITHUB_ENV
-          echo "SERVICE_ROLE_KEY=$(read_env_var SERVICE_ROLE_KEY)" >> $GITHUB_ENV
+          for var in "${envVars[@]}"; do
+              echo "$var=$(node --env-file docker/.env -e "console.log(process.env.$var)")" >>"$GITHUB_ENV"
+          done
 
       - name: Update /etc/hosts
         run: |
