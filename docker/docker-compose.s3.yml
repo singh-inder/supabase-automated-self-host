@@ -1,7 +1,7 @@
 services:
 
   minio:
-    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     ports:
       - '9000:9000'
       - '9001:9001'
@@ -18,7 +18,7 @@ services:
       - ./volumes/storage:/data:z
 
   minio-createbucket:
-    image: minio/mc:RELEASE.2025-04-08T15-39-49Z
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
     depends_on:
       minio:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
 
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.19.3
+    image: supabase/storage-api:v1.22.7
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
