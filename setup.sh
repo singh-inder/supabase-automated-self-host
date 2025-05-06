@@ -559,7 +559,7 @@ if [[ "$proxy" == "caddy" ]]; then
     # https://stackoverflow.com/a/3953712/18954618
     echo "{\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/* /auth/* /realtime/* /storage/* /functions/*
+        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/*
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -570,6 +570,14 @@ if [[ "$proxy" == "caddy" ]]; then
         handle @supa_api {
 		    reverse_proxy kong:8000
 	    }
+
+        handle_path /storage/v1/* {
+            reverse_proxy storage:5000
+        }
+
+        handle /upload/resumable* {
+            reverse_proxy storage:5000
+        }
 
         handle_path /goapi/* {
             reverse_proxy kong:8000
@@ -633,9 +641,14 @@ server {
             proxy_read_timeout 3600s;
         }
 
-        location /storage {
+        location /storage/v1/ {
+             client_max_body_size 0;
+             proxy_pass http://storage:5000/;
+        }
+
+        location /upload/resumable {
             client_max_body_size 0;
-            proxy_pass http://kong_upstream;
+            proxy_pass http://storage:5000;
         }
 
     	location /goapi/ {
