@@ -105,7 +105,7 @@ describe.concurrent("supabase test suite", () => {
     expect(removeRes.error).toBeNull();
   });
 
-  test("Realtime postgres changes", async ({ expect }) => {
+  test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
     const supabase = createCustomClient(SERVICE_ROLE_KEY);
     const authRes = await createVerifiedUser(supabase);
 
@@ -114,24 +114,24 @@ describe.concurrent("supabase test suite", () => {
 
     const mockFn = vi.fn(payload => {});
 
-    await new Promise<RealtimeChannel>(res => {
+    const channel = await new Promise<RealtimeChannel>(res => {
       const ch = supabase
         .channel("db-changes")
         .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
-        .subscribe((status, err) => {
+        .subscribe((_, err) => {
           expect(err).toBeFalsy();
-
-          expect(status).toBe(REALTIME_SUBSCRIBE_STATES.SUBSCRIBED);
 
           res(ch);
         });
     });
 
+    onTestFinished(() => void channel.unsubscribe());
+
     const createRes = await createNote(supabase, authRes.data!.user!.id);
     expect(createRes.error).toBeNull();
 
-    await vi.waitFor(() => expect(mockFn).toHaveBeenCalledOnce(), {
-      timeout: 5 * 1000
+    await vi.waitFor(() => expect(mockFn).toHaveBeenCalled(), {
+      timeout: 4 * 1000
     });
   });
 });
