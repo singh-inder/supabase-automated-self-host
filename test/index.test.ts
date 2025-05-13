@@ -1,11 +1,17 @@
-import { createClient } from "@supabase/supabase-js";
+import {
+  createClient,
+  REALTIME_SUBSCRIBE_STATES,
+  type RealtimeChannel
+} from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
-import { test, describe, beforeAll } from "vitest";
+import { test, describe, beforeAll, vi } from "vitest";
 
 beforeAll(() => {
   cleanEnv(process.env, { SUPABASE_PUBLIC_URL: str(), SERVICE_ROLE_KEY: str() });
 });
+
+const tableName = "todos";
 
 const createCustomClient = (key: string) => {
   return createClient(process.env.SUPABASE_PUBLIC_URL!, key, {
@@ -18,12 +24,27 @@ const getCredentials = () => ({
   password: "password123456"
 });
 
+type Client = ReturnType<typeof createCustomClient>;
+
 /** needs supabase instance created with SERVICE_ROLE_KEY */
-const createVerifiedUser = (supabase: ReturnType<typeof createCustomClient>) => {
+const createVerifiedUser = (supabase: Client) => {
   return supabase.auth.admin.createUser({
     ...getCredentials(),
     email_confirm: true
   });
+};
+
+const createNote = async (supabase: Client, userId: string) => {
+  const res = await supabase
+    .from(tableName)
+    .insert({
+      task: "This is a test note",
+      user_id: userId,
+      is_complete: true
+    })
+    .select("id")
+    .single();
+  return res;
 };
 
 describe.concurrent("supabase test suite", () => {
@@ -39,17 +60,7 @@ describe.concurrent("supabase test suite", () => {
     const userId = user?.id;
     expect(userId).toBeTruthy();
 
-    const tableName = "todos";
-
-    const createRes = await supabase
-      .from(tableName)
-      .insert({
-        task: "This is a test note",
-        user_id: userId,
-        is_complete: true
-      })
-      .select("id")
-      .single();
+    const createRes = await createNote(supabase, userId!);
 
     expect(createRes.error).toBeNull();
 
@@ -89,5 +100,38 @@ describe.concurrent("supabase test suite", () => {
     expect(signedUrl.error).toBeNull();
 
     [signedUrl.data, signedUrl.data?.signedUrl].forEach(v => expect(v).toBeTruthy());
+
+    const removeRes = await supabase.storage.from(bucket).remove([filePath]);
+    expect(removeRes.error).toBeNull();
+  });
+
+  test("Realtime postgres changes", async ({ expect }) => {
+    const supabase = createCustomClient(SERVICE_ROLE_KEY);
+    const authRes = await createVerifiedUser(supabase);
+
+    expect(authRes.error).toBeNull();
+    expect(authRes.data.user).not.toBeNull();
+
+    const mockFn = vi.fn(payload => {});
+
+    await new Promise<RealtimeChannel>(res => {
+      const ch = supabase
+        .channel("db-changes")
+        .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
+        .subscribe((status, err) => {
+          expect(err).toBeFalsy();
+
+          expect(status).toBe(REALTIME_SUBSCRIBE_STATES.SUBSCRIBED);
+
+          res(ch);
+        });
+    });
+
+    const createRes = await createNote(supabase, authRes.data!.user!.id);
+    expect(createRes.error).toBeNull();
+
+    await vi.waitFor(() => expect(mockFn).toHaveBeenCalledOnce(), {
+      timeout: 5 * 1000
+    });
   });
 });

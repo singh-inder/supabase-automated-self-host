@@ -16,6 +16,18 @@ create policy "Individuals can delete their own todos." on todos for
     delete using ((select auth.uid()) = user_id);
 
 
+-- https://supabase.com/docs/guides/realtime/subscribing-to-database-changes#enable-postgres-changes
+BEGIN;
+
+DROP publication IF EXISTS supabase_realtime;
+
+CREATE publication supabase_realtime;
+
+COMMIT;
+
+ALTER publication supabase_realtime ADD TABLE todos;
+
+
 INSERT INTO storage.buckets(id,name) VALUES ('test-bucket','test-bucket');
 
 CREATE POLICY "Only allow access to authenticated users"
