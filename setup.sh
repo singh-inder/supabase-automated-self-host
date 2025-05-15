@@ -415,11 +415,17 @@ if [[ "$proxy" == "caddy" ]]; then
     caddy_local_volume="./volumes/caddy"
     caddyfile_local="$caddy_local_volume/Caddyfile"
 
+    # mounted local ./volumes/caddy/snippets to this path inside container
+    caddySnippetsPath="/etc/caddy/snippets"
+
+    # BIND MOUNT VOLUMES CONFIG
     proxy_service_yaml="${proxy_service_yaml} |
                         .services.caddy.image=\"caddy:2.10.0\" |
                         .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
-                        .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",\"$caddy_local_volume/caddy_data:/data\",\"$caddy_local_volume/caddy_config:/config\"]
-                       "
+                        .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",
+                                                \"$caddy_local_volume/caddy_data:/data\",
+                                                \"$caddy_local_volume/caddy_config:/config\",
+                                                \"$caddy_local_volume/snippets:$caddySnippetsPath\"]"
 else
     update_env_vars "NGINX_SERVER_NAME=$host"
     # docker compose nginx service command directive. Passed via yq strenv
@@ -557,7 +563,10 @@ if [[ "$proxy" == "caddy" ]]; then
     mkdir -p "$caddy_local_volume"
 
     # https://stackoverflow.com/a/3953712/18954618
-    echo "{\$DOMAIN} {
+    echo "
+    import $caddySnippetsPath/cors.conf
+
+    {\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
         @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/*
 
@@ -572,10 +581,12 @@ if [[ "$proxy" == "caddy" ]]; then
 	    }
 
         handle_path /storage/v1/* {
+            import cors *
             reverse_proxy storage:5000
         }
 
         handle /upload/resumable* {
+            import cors *
             reverse_proxy storage:5000
         }
 
@@ -642,11 +653,13 @@ server {
         }
 
         location /storage/v1/ {
-             client_max_body_size 0;
-             proxy_pass http://storage:5000/;
+            include $nginxSnippetsPath/cors.conf;
+            client_max_body_size 0;
+            proxy_pass http://storage:5000/;
         }
 
         location /upload/resumable {
+            include $nginxSnippetsPath/cors.conf;
             client_max_body_size 0;
             proxy_pass http://storage:5000;
         }
