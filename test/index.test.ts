@@ -1,8 +1,4 @@
-import {
-  createClient,
-  REALTIME_SUBSCRIBE_STATES,
-  type RealtimeChannel
-} from "@supabase/supabase-js";
+import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
