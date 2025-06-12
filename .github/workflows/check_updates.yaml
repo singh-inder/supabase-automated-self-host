@@ -17,12 +17,9 @@ jobs:
         with:
           python-version-file: scripts/.python-version
 
-      - name: install python packages
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
+      - uses: astral-sh/setup-uv@v6
 
       - name: execute py script
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: python scripts/check_updates.py
+        run: cd scripts && uv run check_updates.py

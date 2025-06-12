@@ -1,0 +1,16 @@
+[project]
+name = "scripts"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles===24.1.0",
+    "aiohttp===3.12.12",
+    "beautifulsoup4===4.13.4",
+    "htmlmin===0.1.12",
+    "pygithub===2.6.1",
+    "pyyaml>=6.0.2",
+    "requests==2.32.4",
+]
+
+[tool.uv]
+required-version = ">=0.7.9"
