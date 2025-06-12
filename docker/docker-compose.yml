@@ -10,7 +10,7 @@ name: supabase
 services:
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2025.06.02-sha-8f2993d
+    image: supabase/studio:2025.06.05-sha-671aea0
     restart: unless-stopped
     healthcheck:
       test:
@@ -40,7 +40,7 @@ services:
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
 
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_URL: http://analytics:4000
       NEXT_PUBLIC_ENABLE_LOGS: true
       # Comment to use Big Query backend for analytics
@@ -325,7 +325,7 @@ services:
 
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.12.0
+    image: supabase/logflare:1.14.2
     restart: unless-stopped
     ports:
       - 4000:4000
@@ -352,7 +352,8 @@ services:
       DB_PORT: ${POSTGRES_PORT}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_SCHEMA: _analytics
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_SINGLE_TENANT: true
       LOGFLARE_SUPABASE_MODE: true
       LOGFLARE_MIN_CLUSTER_SIZE: 1
@@ -435,7 +436,7 @@ services:
       interval: 5s
       retries: 3
     environment:
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
     command: ["--config", "/etc/vector/vector.yml"]
     security_opt:
       - "label=disable"
