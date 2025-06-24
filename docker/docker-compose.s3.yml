@@ -1,7 +1,7 @@
 services:
 
   minio:
-    image: minio/minio:RELEASE.2025-05-24T17-08-30Z
+    image: minio/minio:RELEASE.2025-06-13T11-33-47Z
     ports:
       - '9000:9000'
       - '9001:9001'
