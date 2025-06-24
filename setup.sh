@@ -176,7 +176,7 @@ fi
 
 if [ ! -x "$downloadLocation"/yq ]; then
     info_log "Downloading yq from https://github.com/mikefarah/yq and saving in $downloadLocation"
-    download_binary https://github.com/mikefarah/yq/releases/download/v4.44.6/yq_"$os"_"$arch" "$downloadLocation"/yq
+    download_binary https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_"$os"_"$arch" "$downloadLocation"/yq
 fi
 
 echo -e "---------------------------------------------------------------------------\n"
