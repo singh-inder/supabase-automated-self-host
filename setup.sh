@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+# https://stackoverflow.com/a/28085062/18954618
 : "${CI:=false}"
 : "${WITH_REDIS:=false}"
 : "${SUDO_USER:=""}"
