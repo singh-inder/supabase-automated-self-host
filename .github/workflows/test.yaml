@@ -35,6 +35,19 @@ jobs:
           skip_after_successful_duplicate: "true"
           cancel_others: "true"
 
+      - uses: actions/checkout@v4
+
+      - name:
+          make sure storage image version is same in docker-compose and docker-compose.s3
+          # yq is preinstalled in gh actions ubuntu-24 img https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md#tools
+        run: |
+          yml_path=".services.storage.image"
+
+          if [[ "$(yq "$yml_path" docker/docker-compose.yml)" != "$(yq "$yml_path" docker/docker-compose.s3.yml)" ]]; then
+            echo "storage versions mismatch"
+            exit 1
+          fi
+
   caddy-build-basic-auth:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
