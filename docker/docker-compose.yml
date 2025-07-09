@@ -297,11 +297,11 @@ services:
       analytics:
         condition: service_healthy
     environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: ${POSTGRES_HOST}
-      PG_META_DB_PORT: ${POSTGRES_PORT}
-      PG_META_DB_NAME: ${POSTGRES_DB}
-      PG_META_DB_USER: supabase_admin
+      PORT: 8080
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: postgres
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
 
   functions:
