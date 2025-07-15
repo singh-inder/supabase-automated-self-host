@@ -4,6 +4,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.845.0",
     "@supabase/supabase-js": "2.49.8",
     "cross-env": "^7.0.3",
     "envalid": "^8.0.0",
