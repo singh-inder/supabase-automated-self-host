@@ -1,5 +1,3 @@
-import path from "node:path";
-import { loadEnvFile } from "node:process";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
@@ -7,8 +5,6 @@ import { test, describe, beforeAll, vi } from "vitest";
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 
 beforeAll(() => {
-  loadEnvFile(path.resolve(import.meta.dirname, "../docker/.env"));
-
   cleanEnv(process.env, {
     SUPABASE_PUBLIC_URL: str(),
     SERVICE_ROLE_KEY: str(),
@@ -103,6 +99,7 @@ describe.concurrent("supabase test suite", () => {
     expect(authRes.data.user).not.toBeNull();
 
     const filePath = "test.jpg";
+    // buckets are defined in todos.sql
     const bucket = "test-bucket";
 
     const upload = await createBucketAndUpload(supabase, bucket, filePath);
@@ -127,7 +124,8 @@ describe.concurrent("supabase test suite", () => {
     expect(authRes.error).toBeNull();
     expect(authRes.data.user).not.toBeNull();
 
-    const upload = await createBucketAndUpload(supabase, "another", "test.jpg");
+    const filePath = `test${Math.floor(Math.random() * 100000)}.jpg`;
+    const upload = await createBucketAndUpload(supabase, "another-bucket", filePath);
     expect(upload.error).toBeNull();
 
     const s3Client = new S3Client({
@@ -140,7 +138,9 @@ describe.concurrent("supabase test suite", () => {
       }
     });
 
-    expect(await s3Client.send(new ListBucketsCommand())).not.throw();
+    expect(
+      Array.isArray((await s3Client.send(new ListBucketsCommand())).Buckets)
+    ).toBe(true);
   });
 
   test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
