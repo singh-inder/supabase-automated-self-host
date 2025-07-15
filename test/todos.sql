@@ -29,6 +29,7 @@ ALTER publication supabase_realtime ADD TABLE todos;
 
 
 INSERT INTO storage.buckets(id,name) VALUES ('test-bucket','test-bucket');
+INSERT INTO storage.buckets(id,name) VALUES ('another-bucket','another-bucket');
 
 CREATE POLICY "Only allow access to authenticated users"
 ON storage.objects

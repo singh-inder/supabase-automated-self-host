@@ -2,9 +2,16 @@ import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
+import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
 
 beforeAll(() => {
-  cleanEnv(process.env, { SUPABASE_PUBLIC_URL: str(), SERVICE_ROLE_KEY: str() });
+  cleanEnv(process.env, {
+    SUPABASE_PUBLIC_URL: str(),
+    SERVICE_ROLE_KEY: str(),
+    REGION: str(),
+    S3_PROTOCOL_ACCESS_KEY_ID: str(),
+    S3_PROTOCOL_ACCESS_KEY_SECRET: str()
+  });
 });
 
 const tableName = "todos";
@@ -19,6 +26,16 @@ const getCredentials = () => ({
   email: `john${Math.floor(Math.random() * 10_000)}@gmail.com`,
   password: "password123456"
 });
+
+const createBucketAndUpload = async (
+  client: Client,
+  bucket: string,
+  filePath: string
+) => {
+  const blob = await wretch("https://placehold.co/400").get().blob();
+
+  return await client.storage.from(bucket).upload(filePath, blob);
+};
 
 type Client = ReturnType<typeof createCustomClient>;
 
@@ -75,8 +92,6 @@ describe.concurrent("supabase test suite", () => {
   });
 
   test("Storage", async ({ expect }) => {
-    const blob = await wretch("https://placehold.co/400").get().blob();
-
     const supabase = createCustomClient(SERVICE_ROLE_KEY);
     const authRes = await createVerifiedUser(supabase);
 
@@ -84,9 +99,10 @@ describe.concurrent("supabase test suite", () => {
     expect(authRes.data.user).not.toBeNull();
 
     const filePath = "test.jpg";
+    // buckets are defined in todos.sql
     const bucket = "test-bucket";
 
-    const upload = await supabase.storage.from(bucket).upload(filePath, blob);
+    const upload = await createBucketAndUpload(supabase, bucket, filePath);
     expect(upload.error).toBeNull();
 
     const signedUrl = await supabase.storage
@@ -99,6 +115,32 @@ describe.concurrent("supabase test suite", () => {
 
     const removeRes = await supabase.storage.from(bucket).remove([filePath]);
     expect(removeRes.error).toBeNull();
+  });
+
+  test("Access buckets via s3 client", async ({ expect }) => {
+    const supabase = createCustomClient(SERVICE_ROLE_KEY);
+    const authRes = await createVerifiedUser(supabase);
+
+    expect(authRes.error).toBeNull();
+    expect(authRes.data.user).not.toBeNull();
+
+    const filePath = `test${Math.floor(Math.random() * 100000)}.jpg`;
+    const upload = await createBucketAndUpload(supabase, "another-bucket", filePath);
+    expect(upload.error).toBeNull();
+
+    const s3Client = new S3Client({
+      endpoint: process.env.SUPABASE_PUBLIC_URL! + "/storage/v1/s3",
+      forcePathStyle: true,
+      region: process.env.REGION!,
+      credentials: {
+        accessKeyId: process.env.S3_PROTOCOL_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.S3_PROTOCOL_ACCESS_KEY_SECRET!
+      }
+    });
+
+    expect(
+      Array.isArray((await s3Client.send(new ListBucketsCommand())).Buckets)
+    ).toBe(true);
   });
 
   test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
