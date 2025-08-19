@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
@@ -23,7 +24,7 @@ const createCustomClient = (key: string) => {
 };
 
 const getCredentials = () => ({
-  email: `john${Math.floor(Math.random() * 10_000)}@gmail.com`,
+  email: `j-${randomUUID()}@mail.com`,
   password: "password123456"
 });
 
