@@ -10,7 +10,7 @@ name: supabase
 services:
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2025.06.23-sha-17632f7
+    image: supabase/studio:2025.08.04-sha-6e99ca6
     restart: unless-stopped
     healthcheck:
       test:
@@ -78,7 +78,7 @@ services:
 
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.177.0
+    image: supabase/gotrue:v2.178.0
     restart: unless-stopped
     healthcheck:
       test:
@@ -161,7 +161,7 @@ services:
 
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.12
+    image: postgrest/postgrest:v13.0.4
     restart: unless-stopped
     depends_on:
       db:
@@ -182,7 +182,7 @@ services:
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.34.47
+    image: supabase/realtime:v2.41.23
     restart: unless-stopped
     depends_on:
       db:
@@ -228,7 +228,7 @@ services:
   # To use S3 backed storage: docker compose -f docker-compose.yml -f docker-compose.s3.yml up
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.25.7
+    image: supabase/storage-api:v1.26.3
     restart: unless-stopped
     volumes:
       - ./volumes/storage:/var/lib/storage:z
@@ -291,7 +291,7 @@ services:
 
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.91.0
+    image: supabase/postgres-meta:v0.91.5
     restart: unless-stopped
     depends_on:
       db:
@@ -309,7 +309,7 @@ services:
 
   functions:
     container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.67.4
+    image: supabase/edge-runtime:v1.68.3
     restart: unless-stopped
     volumes:
       - ./volumes/functions:/home/deno/functions:Z
@@ -328,7 +328,7 @@ services:
 
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.14.2
+    image: supabase/logflare:1.18.3
     restart: unless-stopped
     ports:
       - 4000:4000
@@ -372,7 +372,7 @@ services:
   # Comment out everything below this point if you are using an external Postgres database
   db:
     container_name: supabase-db
-    image: supabase/postgres:15.8.1.060
+    image: supabase/postgres:15.8.1.131
     restart: unless-stopped
     volumes:
       - ./volumes/db/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
