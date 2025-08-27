@@ -1,8 +1,12 @@
 # Supabase automated self host
 
-Deploy a self-hosted [Supabase](https://github.com/supabase/supabase) instance with [Authelia](https://github.com/authelia/authelia) for 2-factor authentication (2FA) and [Nginx](https://github.com/nginx/nginx) or [Caddy](https://github.com/caddyserver/caddy) as a reverse proxy, all with **ONE bash script!**
+Deploy a self-hosted [Supabase](https://github.com/supabase/supabase) instance with:
 
-When using nginx, this project leverages [docker-nginx-certbot](https://github.com/JonasAlfredsson/docker-nginx-certbot) image which handles requesting and renewing SSL certificates automatically.
+- [Authelia](https://github.com/authelia/authelia) for secure 2-factor authentication (2FA)
+- [Nginx](https://github.com/JonasAlfredsson/docker-nginx-certbot) or [Caddy](https://github.com/caddyserver/caddy) as the reverse proxy
+- SSL certificates from Let's Encrypt, issued & renewed automatically.
+
+All set up with just **ONE bash script!**
 
 👉 If you find this project helpful, please consider leaving a ⭐ to show your support. You can also support my work by [Buying me a coffee](https://buymeacoffee.com/_inder1). Thankyou!
 
