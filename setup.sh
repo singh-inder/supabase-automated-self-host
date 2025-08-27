@@ -542,7 +542,7 @@ if [[ "$with_authelia" == true ]]; then
         authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
 
         authelia_docker_service_yaml="${authelia_docker_service_yaml}|.services.redis.container_name=\"redis\" |
-                    .services.redis.image=\"redis:7.4\" |
+                    .services.redis.image=\"redis:8.2.1\" |
                     .services.redis.expose=[6379] |
                     .services.redis.volumes=[\"./volumes/redis:/data\"] |
                     .services.redis.healthcheck={
