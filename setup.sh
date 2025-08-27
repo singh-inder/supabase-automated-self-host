@@ -423,7 +423,7 @@ if [[ "$proxy" == "caddy" ]]; then
 
     # BIND MOUNT VOLUMES CONFIG
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.caddy.image=\"caddy:2.10.0\" |
+                        .services.caddy.image=\"caddy:2.10.2\" |
                         .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
                         .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",
                                                 \"$caddy_local_volume/caddy_data:/data\",
@@ -445,7 +445,7 @@ else
     # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
 
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.nginx.image=\"jonasal/nginx-certbot:5.5.0-nginx1.27.5\" |
+                        .services.nginx.image=\"jonasal/nginx-certbot:6.0.1-nginx1.29.1\" |
                         .services.nginx.volumes=[\"$nginx_local_volume:/etc/nginx/user_conf.d\",\"$nginx_local_volume/letsencrypt:/etc/letsencrypt\"] |
                         .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
                         .services.nginx.environment.CERTBOT_EMAIL=\"your@email.org\" |
@@ -542,7 +542,7 @@ if [[ "$with_authelia" == true ]]; then
         authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
 
         authelia_docker_service_yaml="${authelia_docker_service_yaml}|.services.redis.container_name=\"redis\" |
-                    .services.redis.image=\"redis:7.4\" |
+                    .services.redis.image=\"redis:8.2.1\" |
                     .services.redis.expose=[6379] |
                     .services.redis.volumes=[\"./volumes/redis:/data\"] |
                     .services.redis.healthcheck={

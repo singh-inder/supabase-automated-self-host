@@ -120,7 +120,7 @@ jobs:
       - name: Reset db & Test containers with minio storage
         run: |
           set -ex
-          cd docker && docker compose kill && docker compose down 
+          cd docker && docker compose down -t0
           sudo rm -r volumes/db/data
           docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
 
