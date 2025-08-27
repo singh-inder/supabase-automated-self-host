@@ -4,7 +4,7 @@ Deploy a self-hosted [Supabase](https://github.com/supabase/supabase) instance w
 
 - [Authelia](https://github.com/authelia/authelia) for secure 2-factor authentication (2FA)
 - [Nginx](https://github.com/JonasAlfredsson/docker-nginx-certbot) or [Caddy](https://github.com/caddyserver/caddy) as the reverse proxy
-- SSL certificates from Let's Encrypt, issued & renewed automatically.
+- SSL certificates from [Let's Encrypt](https://letsencrypt.org/), issued & renewed automatically.
 
 All set up with just **ONE bash script!**
 
