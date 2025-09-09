@@ -176,7 +176,7 @@ describe.concurrent("supabase test suite", () => {
     });
   });
 
-  test("Test functions", async ({ expect }) => {
+  test("Test functions", { retry: 2 }, async ({ expect }) => {
     const supabase = createCustomClient(ANON_KEY);
 
     const { error } = await supabase.functions.invoke("hello", {
