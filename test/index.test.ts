@@ -9,6 +9,7 @@ beforeAll(() => {
   cleanEnv(process.env, {
     SUPABASE_PUBLIC_URL: str(),
     SERVICE_ROLE_KEY: str(),
+    ANON_KEY: str(),
     REGION: str(),
     S3_PROTOCOL_ACCESS_KEY_ID: str(),
     S3_PROTOCOL_ACCESS_KEY_SECRET: str()
@@ -63,6 +64,7 @@ const createNote = async (supabase: Client, userId: string) => {
 
 describe.concurrent("supabase test suite", () => {
   const SERVICE_ROLE_KEY = process.env.SERVICE_ROLE_KEY!;
+  const ANON_KEY = process.env.ANON_KEY!;
 
   test("CRUD operations with verified user", async ({ expect }) => {
     const supabase = createCustomClient(SERVICE_ROLE_KEY);
@@ -172,5 +174,16 @@ describe.concurrent("supabase test suite", () => {
     await vi.waitFor(() => expect(mockFn).toHaveBeenCalled(), {
       timeout: 4 * 1000
     });
+  });
+
+  test("Test functions", { retry: 2 }, async ({ expect }) => {
+    const supabase = createCustomClient(ANON_KEY);
+
+    const { error, data } = await supabase.functions.invoke("hello", {
+      method: "GET"
+    });
+
+    expect(error).toBeNull();
+    expect(data).toBe("Hello from Edge Functions!");
   });
 });
