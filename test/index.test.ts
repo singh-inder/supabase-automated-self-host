@@ -179,10 +179,11 @@ describe.concurrent("supabase test suite", () => {
   test("Test functions", { retry: 2 }, async ({ expect }) => {
     const supabase = createCustomClient(ANON_KEY);
 
-    const { error } = await supabase.functions.invoke("hello", {
+    const { error, data } = await supabase.functions.invoke("hello", {
       method: "GET"
     });
 
     expect(error).toBeNull();
+    expect(data).toBe("Hello from Edge Functions!");
   });
 });
