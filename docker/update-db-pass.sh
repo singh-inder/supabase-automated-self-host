@@ -50,5 +50,5 @@ END
 \$\$;
 EOF
 
-sed -i "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$new_passwd|" .env
+sed -i.bak "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$new_passwd|" .env
 docker compose up -d --force-recreate
