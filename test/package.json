@@ -8,7 +8,7 @@
     "@supabase/supabase-js": "2.51.0",
     "cross-env": "^7.0.3",
     "envalid": "^8.1.0",
-    "vitest": "3.2.4",
+    "vitest": "^3.2.4",
     "wretch": "^2.11.0"
   }
 }
