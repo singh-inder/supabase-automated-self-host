@@ -78,7 +78,7 @@ services:
 
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.178.0
+    image: supabase/gotrue:v2.180.0
     restart: unless-stopped
     healthcheck:
       test:
@@ -161,7 +161,7 @@ services:
 
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v13.0.4
+    image: postgrest/postgrest:v13.0.7
     restart: unless-stopped
     depends_on:
       db:
