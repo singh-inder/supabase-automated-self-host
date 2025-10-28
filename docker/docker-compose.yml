@@ -27,8 +27,12 @@ services:
       analytics:
         condition: service_healthy
     environment:
+      # Binds nestjs listener to both IPv4 and IPv6 network interfaces
+      HOSTNAME: "::"
+
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
 
       DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
       DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
@@ -306,6 +310,7 @@ services:
       PG_META_DB_NAME: ${POSTGRES_DB}
       PG_META_DB_USER: postgres
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
 
   functions:
     container_name: supabase-edge-functions
