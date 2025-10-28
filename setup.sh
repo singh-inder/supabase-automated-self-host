@@ -572,7 +572,7 @@ if [[ "$proxy" == "caddy" ]]; then
 
     {\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/*
+        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/* /mcp /api/mcp
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -681,6 +681,14 @@ server {
         }
 
         location /functions {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /mcp {
+            proxy_pass http://kong_upstream;
+        }
+
+        location /api/mcp {
             proxy_pass http://kong_upstream;
         }
 
