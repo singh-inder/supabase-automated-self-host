@@ -589,11 +589,6 @@ if [[ "$proxy" == "caddy" ]]; then
             reverse_proxy storage:5000
         }
 
-        handle /upload/resumable* {
-            import cors *
-            reverse_proxy storage:5000
-        }
-
         handle_path /goapi/* {
             reverse_proxy kong:8000
         }
@@ -660,12 +655,6 @@ server {
             include $nginxSnippetsPath/cors.conf;
             client_max_body_size 0;
             proxy_pass http://storage:5000/;
-        }
-
-        location /upload/resumable {
-            include $nginxSnippetsPath/cors.conf;
-            client_max_body_size 0;
-            proxy_pass http://storage:5000;
         }
 
     	location /goapi/ {
