@@ -81,7 +81,7 @@ jobs:
           sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
 
       - name: Test containers
-        run: cd docker && docker compose up -d --quiet-pull --wait
+        run: cd docker && docker compose pull --quiet && docker compose up -d --wait
 
       - name: Setup db
         run: |
