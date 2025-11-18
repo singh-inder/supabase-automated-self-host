@@ -37,6 +37,10 @@ jobs:
       REPO: ${{ inputs.repo }}
       PROXY: ${{ inputs.proxy }}
     steps:
+      - run: |
+          export VERSION=28.5.2
+          curl -fsSL https://get.docker.com | sudo -E sh
+
       - uses: actions/checkout@v4
 
       - name: execute setup script
