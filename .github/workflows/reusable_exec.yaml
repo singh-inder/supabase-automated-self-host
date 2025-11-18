@@ -83,8 +83,6 @@ jobs:
       - name: Test containers
         run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
 
-      - run: cd docker && docker compose logs supavisor
-
       - name: Setup db
         run: |
           set -e
