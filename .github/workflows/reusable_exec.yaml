@@ -81,7 +81,9 @@ jobs:
           sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
 
       - name: Test containers
-        run: cd docker && docker compose pull --quiet && docker compose up -d --wait
+        run: cd docker && docker compose up -d --quiet-pull --wait-timeout 120
+
+      - run: cd docker && docker compose logs supavisor
 
       - name: Setup db
         run: |
@@ -122,7 +124,7 @@ jobs:
           set -ex
           cd docker && docker compose down -t0
           sudo rm -r volumes/db/data
-          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait
+          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait-timeout 120
 
       - name: Setup db
         run: |
