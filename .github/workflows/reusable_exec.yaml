@@ -38,6 +38,20 @@ jobs:
       PROXY: ${{ inputs.proxy }}
     steps:
       - uses: actions/checkout@v4
+      - name: download url-parser
+        run: |
+          set -euo pipefail
+          arch=""
+          if [[ "$RUNNER_ARCH" == "X64" ]]; then
+            arch="amd64"
+          elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
+            arch="arm64"
+          else
+            echo "$RUNNER_ARCH Not handled"
+            exit 1
+          fi
+          wget -q -O /usr/local/bin/url-parser https://github.com/singh-inder/url-parser/releases/download/v1.1.0/url-parser-linux-$arch
+          chmod +x /usr/local/bin/url-parser
 
       - name: execute setup script
         # after checkout, pwd is the root of the repo thats why cd ../
