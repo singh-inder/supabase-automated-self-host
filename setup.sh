@@ -632,13 +632,7 @@ server {
         server_tokens off;
         proxy_http_version 1.1;
 
-        proxy_set_header Host \$host;
-        proxy_set_header X-Original-URL \$scheme://\$http_host\$request_uri;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header X-Forwarded-Host \$http_host;
-        proxy_set_header X-Forwarded-URI \$request_uri;
-        proxy_set_header X-Forwarded-For \$remote_addr;
-        proxy_set_header X-Real-IP \$remote_addr;
+        include $nginxSnippetsPath/common_proxy_headers.conf;
 
         ssl_certificate         $certPath/fullchain.pem;
         ssl_certificate_key     $certPath/privkey.pem;
@@ -655,8 +649,9 @@ server {
 
         location /storage/v1/ {
             include $nginxSnippetsPath/cors.conf;
-            client_max_body_size 0;
+            include $nginxSnippetsPath/common_proxy_headers.conf;
             proxy_set_header X-Forwarded-Prefix /storage/v1;
+            client_max_body_size 0;
             proxy_pass http://storage:5000/;
         }
 
@@ -688,6 +683,7 @@ server {
         include $nginxSnippetsPath/authelia-location.conf;
 
     	location /authenticate {
+            include $nginxSnippetsPath/common_proxy_headers.conf;
 	     	include $nginxSnippetsPath/proxy.conf;
 		    proxy_pass http://authelia:9091;
 	    }")
