@@ -586,7 +586,9 @@ if [[ "$proxy" == "caddy" ]]; then
 
         handle_path /storage/v1/* {
             import cors *
-            reverse_proxy storage:5000
+            reverse_proxy storage:5000 {
+                header_up X-Forwarded-Prefix /{http.request.orig_uri.path.0}/{http.request.orig_uri.path.1}
+            }
         }
 
         handle_path /goapi/* {
@@ -654,6 +656,7 @@ server {
         location /storage/v1/ {
             include $nginxSnippetsPath/cors.conf;
             client_max_body_size 0;
+            proxy_set_header X-Forwarded-Prefix /storage/v1;
             proxy_pass http://storage:5000/;
         }
 
