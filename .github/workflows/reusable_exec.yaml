@@ -77,7 +77,7 @@ jobs:
       - name: Update /etc/hosts
         run: |
           set -ex
-          pip install tldextract
+          pip install --quiet tldextract
           host="$(tldextract --json "$SUPABASE_PUBLIC_URL" | jq -r .fqdn)"
           sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
 
