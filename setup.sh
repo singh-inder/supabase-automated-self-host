@@ -168,16 +168,17 @@ if ! cd "$directory"/docker; then error_exit "Unable to access $directory/docker
 if [ ! -f ".env.example" ]; then error_exit ".env.example file not found. Exiting!"; fi
 
 download_binary() { wget "$1" -O "$2" &>/dev/null && chmod +x "$2" &>/dev/null; }
-downloadLocation="/usr/local/bin"
+urlParserBin="./url-parser"
+yqBin="./yq"
 
-if [ ! -x "$downloadLocation"/url-parser ]; then
-    info_log "Downloading url-parser from $githubAc/url-parser and saving in $downloadLocation"
-    download_binary "$githubAc"/url-parser/releases/download/v1.1.0/url-parser-"$os"-"$arch" "$downloadLocation"/url-parser
+if [ ! -x "$urlParserBin" ]; then
+    info_log "Downloading url-parser from $githubAc/url-parser"
+    download_binary "$githubAc"/url-parser/releases/download/v1.1.0/url-parser-"$os"-"$arch" "$urlParserBin"
 fi
 
-if [ ! -x "$downloadLocation"/yq ]; then
-    info_log "Downloading yq from https://github.com/mikefarah/yq and saving in $downloadLocation"
-    download_binary https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_"$os"_"$arch" "$downloadLocation"/yq
+if [ ! -x "$yqBin" ]; then
+    info_log "Downloading yq from https://github.com/mikefarah/yq"
+    download_binary https://github.com/mikefarah/yq/releases/download/v4.45.4/yq_"$os"_"$arch" "$yqBin"
 fi
 
 echo -e "---------------------------------------------------------------------------\n"
@@ -215,13 +216,13 @@ while [ -z "$domain" ]; do
         read -rp "$(format_prompt "Enter your domain:") " domain
     fi
 
-    if ! protocol="$(url-parser --url "$domain" --get scheme 2>/dev/null)"; then
+    if ! protocol="$("$urlParserBin" --url "$domain" --get scheme 2>/dev/null)"; then
         error_log "Couldn't extract protocol. Please check the url you entered.\n"
         domain=""
         continue
     fi
 
-    if ! host="$(url-parser --url "$domain" --get host 2>/dev/null)"; then
+    if ! host="$("$urlParserBin" --url "$domain" --get host 2>/dev/null)"; then
         error_log "Couldn't extract url host. Please check the url you entered.\n"
         domain=""
         continue
@@ -234,7 +235,7 @@ while [ -z "$domain" ]; do
             domain=""
         else
             if
-                ! registered_domain="$(url-parser --url "$domain" --get registeredDomain 2>/dev/null)" || [ -z "$registered_domain" ] ||
+                ! registered_domain="$("$urlParserBin" --url "$domain" --get registeredDomain 2>/dev/null)" || [ -z "$registered_domain" ] ||
                     [ "$registered_domain" = "." ]
             then
                 error_log "Couldn't extract root domain. Please check the url you entered.\n"
@@ -392,7 +393,7 @@ sed -e "3d" \
 update_yaml_file() {
     # https://github.com/mikefarah/yq/issues/465#issuecomment-2265381565
     sed -i '/^\r\{0,1\}$/s// #BLANK_LINE/' "$2"
-    yq -i "$1" "$2"
+    "$yqBin" -i "$1" "$2"
     sed -i "s/ *#BLANK_LINE//g" "$2"
 }
 
@@ -493,7 +494,7 @@ if [[ "$with_authelia" == true ]]; then
     # WRITE AUTHELIA users_database.yml file
     # adding disabled=false after updating style to double so that every value except disabled is double quoted
     yaml_path=".users.$username" displayName="$display_name" password="$password" email="$email" \
-        yq -n 'eval(strenv(yaml_path)).displayname = strenv(displayName) |
+        "$yqBin" -n 'eval(strenv(yaml_path)).displayname = strenv(displayName) |
                eval(strenv(yaml_path)).password = strenv(password) | 
                eval(strenv(yaml_path)).email = strenv(email) | 
                eval(strenv(yaml_path)).groups = ["admins","dev"] | 
@@ -712,6 +713,8 @@ fi
 
 unset password confirmPassword
 if [ -n "$SUDO_USER" ]; then chown -R "$SUDO_USER": .; fi
+info_log "Cleaning up!"
+for bin in "$yqBin" "$urlParserBin"; do rm "$bin"; done
 
 echo -e "\n🎉 Success!"
 echo "👉 Next steps:"
