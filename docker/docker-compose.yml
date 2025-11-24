@@ -327,6 +327,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./volumes/functions:/home/deno/functions:Z
+      - deno_cache:/root/.cache/deno
     depends_on:
       analytics:
         condition: service_healthy
@@ -513,3 +514,4 @@ services:
 
 volumes:
   db-config:
+  deno_cache:
