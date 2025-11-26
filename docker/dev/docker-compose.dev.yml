@@ -17,6 +17,7 @@ services:
             - node_modules/
         - action: rebuild
           path: package.json
+
   mail:
     container_name: supabase-mail
     image: inbucket/inbucket:3.0.3
