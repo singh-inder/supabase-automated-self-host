@@ -28,7 +28,7 @@ async def download(
                     while content := await res.content.read(20 << 10):
                         await f.write(content)
                 except Exception as err:
-                    print(f"Error writing file {c.name}: {err}")
+                    raise Exception(f"Error writing file {c.name}: {err}")
                 else:
                     return output_path
     except Exception as err:
@@ -90,7 +90,7 @@ async def main():
     remote_files = []
 
     async with aiohttp.ClientSession() as session:
-        skip = ["readme.md", ".gitignore"]
+        skip = ["readme.md", ".gitignore", "versions.md", "changelog.md"]
         try:
             async with asyncio.TaskGroup() as tg:
                 for f in repoFiles:
