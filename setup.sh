@@ -457,7 +457,7 @@ else
 
     if [[ "$CI" == true ]]; then
         # https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/advanced_usage.md#local-ca
-        proxy_service_yaml="${proxy_service_yaml} | .services.nginx.environment.USE_LOCAL_CA=1"
+        proxy_service_yaml+="| .services.nginx.environment.USE_LOCAL_CA=1"
     fi
 
     # https://www.baeldung.com/linux/nginx-config-environment-variables#4-a-common-pitfall
@@ -542,19 +542,19 @@ if [[ "$with_authelia" == true ]]; then
        .services.db.volumes += "./volumes/db/schema-authelia.sh:/docker-entrypoint-initdb.d/schema-authelia.sh"'
 
     if [[ "$setup_redis" == true ]]; then
-        authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
+        authelia_config_file_yaml+='|.session.redis.host="redis" | .session.redis.port=6379'
 
-        authelia_docker_service_yaml="${authelia_docker_service_yaml}|.services.redis.container_name=\"redis\" |
-                    .services.redis.image=\"redis:8.2.1\" |
+        authelia_docker_service_yaml+='|.services.redis.container_name="redis" |
+                    .services.redis.image="redis:8.2.1" |
                     .services.redis.expose=[6379] |
-                    .services.redis.volumes=[\"./volumes/redis:/data\"] |
+                    .services.redis.volumes=["./volumes/redis:/data"] |
                     .services.redis.healthcheck={
-                    \"test\" : [\"CMD-SHELL\",\"redis-cli ping | grep PONG\"],
-                    \"timeout\" : \"5s\",
-                    \"interval\" : \"1s\",
-                    \"retries\" : 5
+                    "test" : ["CMD-SHELL","redis-cli ping | grep PONG"],
+                    "timeout" : "5s",
+                    "interval" : "1s",
+                    "retries" : 5
                     } |
-                    .services.authelia.depends_on.redis.condition=\"service_healthy\""
+                    .services.authelia.depends_on.redis.condition="service_healthy"'
     fi
 
     host="$host" registered_domain="$registered_domain" authelia_url="$domain"/authenticate redirect_url="$domain" \
