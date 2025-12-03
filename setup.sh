@@ -356,15 +356,16 @@ iat=$(date +%s)
 exp=$(("$iat" + 5 * 3600 * 24 * 365)) # 5 years expiry
 
 gen_token() {
-    local payload=$(
+    local payload
+    payload=$(
         echo "$1" | jq --arg jq_iat "$iat" --arg jq_exp "$exp" '.iat=($jq_iat | tonumber) | .exp=($jq_exp | tonumber)'
     )
-
-    local payload_base64=$(printf %s "$payload" | base64_url_encode)
+    local payload_base64
+    payload_base64=$(printf %s "$payload" | base64_url_encode)
 
     local signed_content="${header_base64}.${payload_base64}"
-
-    local signature=$(printf %s "$signed_content" | openssl dgst -binary -sha256 -hmac "$jwt_secret" | base64_url_encode)
+    local signature
+    signature=$(printf %s "$signed_content" | openssl dgst -binary -sha256 -hmac "$jwt_secret" | base64_url_encode)
 
     printf '%s' "${signed_content}.${signature}"
 }
@@ -399,7 +400,7 @@ update_yaml_file() {
 
 compose_file="docker-compose.yml"
 env_vars=""
-
+# add env vars in .env file
 update_env_vars() {
     for env_key_value in "$@"; do
         env_vars="${env_vars}\n$env_key_value"
