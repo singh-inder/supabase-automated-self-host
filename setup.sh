@@ -349,7 +349,7 @@ jwt_secret="$(gen_hex 20)"
 
 base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 
-header='{"typ": "JWT","alg": "HS256"}'
+header='{"typ":"JWT","alg":"HS256"}'
 header_base64=$(printf %s "$header" | base64_url_encode)
 # iat and exp for both tokens has to be same thats why initializing here
 iat=$(date +%s)
@@ -357,9 +357,7 @@ exp=$(("$iat" + 5 * 3600 * 24 * 365)) # 5 years expiry
 
 gen_token() {
     local payload
-    payload=$(
-        echo "$1" | jq --arg jq_iat "$iat" --arg jq_exp "$exp" '.iat=($jq_iat | tonumber) | .exp=($jq_exp | tonumber)'
-    )
+    payload=$(jq -nc ".iat=($iat | tonumber) | .exp=($exp | tonumber) | .iss=\"supabase\" | .role=\"$1\"")
     local payload_base64
     payload_base64=$(printf %s "$payload" | base64_url_encode)
 
@@ -370,11 +368,8 @@ gen_token() {
     printf '%s' "${signed_content}.${signature}"
 }
 
-anon_payload='{"role": "anon", "iss": "supabase"}'
-anon_token=$(gen_token "$anon_payload")
-
-service_role_payload='{"role": "service_role", "iss": "supabase"}'
-service_role_token=$(gen_token "$service_role_payload")
+anon_token=$(gen_token "anon")
+service_role_token=$(gen_token "service_role")
 
 sed -e "3d" \
     -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
