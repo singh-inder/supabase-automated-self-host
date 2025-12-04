@@ -349,7 +349,7 @@ jwt_secret="$(gen_hex 20)"
 
 base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 
-header='{"typ": "JWT","alg": "HS256"}'
+header='{"typ":"JWT","alg":"HS256"}'
 header_base64=$(printf %s "$header" | base64_url_encode)
 # iat and exp for both tokens has to be same thats why initializing here
 iat=$(date +%s)
