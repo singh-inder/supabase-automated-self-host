@@ -56,6 +56,9 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
+      - name: validate compose file
+        run: cd docker; docker compose config -q || exit 1
+
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
