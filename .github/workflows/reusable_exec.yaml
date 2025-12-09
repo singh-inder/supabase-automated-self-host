@@ -126,8 +126,9 @@ jobs:
         run: |
           set -ex
           cd docker && docker compose down -t0
-          sudo rm -r volumes/db/data
-          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait
+          sudo rm -r volumes/db/data volumes/storage
+          # https://github.com/docker/compose/issues/10596#issuecomment-2864307501
+          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
 
       - name: Setup db
         run: |
