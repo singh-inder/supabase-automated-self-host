@@ -10,7 +10,7 @@ if [ ! -w ".env" ]; then
     exit 1
 fi
 
-docker compose exec -T db psql -U supabase_admin -d "_supabase" <<EOF
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d _supabase <<EOF
 alter user anon with password '${new_passwd}';
 alter user authenticated with password '${new_passwd}';
 alter user authenticator with password '${new_passwd}';
