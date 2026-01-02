@@ -267,7 +267,7 @@ services:
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: ${TENANT_ID}
+      TENANT_ID: ${STORAGE_TENANT_ID}
       # TODO: https://github.com/supabase/storage-api/issues/55
       REGION: ${REGION}
       GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
@@ -275,7 +275,6 @@ services:
       IMGPROXY_URL: http://imgproxy:5001
       S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID}
       S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
-      S3_PROTOCOL_PREFIX: ${S3_PROTOCOL_PREFIX}
 
   imgproxy:
     container_name: supabase-imgproxy
