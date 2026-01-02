@@ -349,31 +349,27 @@ jwt_secret="$(gen_hex 20)"
 
 base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
 
-header='{"typ": "JWT","alg": "HS256"}'
+header='{"typ":"JWT","alg":"HS256"}'
 header_base64=$(printf %s "$header" | base64_url_encode)
 # iat and exp for both tokens has to be same thats why initializing here
 iat=$(date +%s)
 exp=$(("$iat" + 5 * 3600 * 24 * 365)) # 5 years expiry
 
 gen_token() {
-    local payload=$(
-        echo "$1" | jq --arg jq_iat "$iat" --arg jq_exp "$exp" '.iat=($jq_iat | tonumber) | .exp=($jq_exp | tonumber)'
-    )
-
-    local payload_base64=$(printf %s "$payload" | base64_url_encode)
+    local payload
+    payload=$(jq -nc ".iat=($iat | tonumber) | .exp=($exp | tonumber) | .iss=\"supabase\" | .role=\"$1\"")
+    local payload_base64
+    payload_base64=$(printf %s "$payload" | base64_url_encode)
 
     local signed_content="${header_base64}.${payload_base64}"
-
-    local signature=$(printf %s "$signed_content" | openssl dgst -binary -sha256 -hmac "$jwt_secret" | base64_url_encode)
+    local signature
+    signature=$(printf %s "$signed_content" | openssl dgst -binary -sha256 -hmac "$jwt_secret" | base64_url_encode)
 
     printf '%s' "${signed_content}.${signature}"
 }
 
-anon_payload='{"role": "anon", "iss": "supabase"}'
-anon_token=$(gen_token "$anon_payload")
-
-service_role_payload='{"role": "service_role", "iss": "supabase"}'
-service_role_token=$(gen_token "$service_role_payload")
+anon_token=$(gen_token "anon")
+service_role_token=$(gen_token "service_role")
 
 sed -e "3d" \
     -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
@@ -399,7 +395,7 @@ update_yaml_file() {
 
 compose_file="docker-compose.yml"
 env_vars=""
-
+# add env vars in .env file
 update_env_vars() {
     for env_key_value in "$@"; do
         env_vars="${env_vars}\n$env_key_value"

@@ -12,7 +12,7 @@ All set up with just **ONE bash script!**
 
 ## Prerequisites
 
-- **A Linux Machine with docker installed**: This can be a server or any personal computer running Linux with at least 1 GB RAM and 25 GB Disk space. **The script has been tested only on Linux/WSL.**
+- **A Linux Machine with docker installed**: This can be a server or any personal computer running Linux with at least 4 GB RAM and 25 GB Disk space. **The script has been tested only on Linux/WSL.**
 
 - **Own Domain (optional)**: Required only if you're going to expose supabase services to the internet. You can get one for free from [noip](https://www.noip.com). Otherwise you can also run supabase locally (more on this in setup instructions)
 
@@ -94,8 +94,6 @@ After script completes successfully, cd into `supabase-automated-self-host/docke
 ## How this differs from coolify:
 
 - Coolify is a Platform as a Service (PaaS) that provides hosting solutions for various applications, while this project only sets up supabase with nginx/caddy and authelia.
-
-- Coolify needs at least 2 GB RAM and 30 GB of disk space. Supabase itself only needs 1 GB ram and 25 GB disk space to start.
 
 - With coolify, you're only getting basic username password auth. No 2FA.
 
