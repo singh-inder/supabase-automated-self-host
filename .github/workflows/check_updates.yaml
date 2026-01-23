@@ -15,11 +15,11 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v5
         with:
-          python-version-file: scripts/.python-version
+          python-version-file: .github/scripts/.python-version
 
       - uses: astral-sh/setup-uv@v6
 
       - name: execute py script
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: cd scripts && uv run check_updates.py
+        run: cd .github/scripts && uv run check_updates.py
