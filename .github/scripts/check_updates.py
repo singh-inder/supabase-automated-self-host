@@ -80,7 +80,7 @@ async def main():
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
     out = os.path.join(current_dir, "remote")
-    local_docker_dir = os.path.normpath(os.path.join(current_dir, "../docker"))
+    local_docker_dir = os.path.normpath(os.path.join(current_dir, "../../docker"))
 
     g = Github()
     repo = g.get_repo("supabase/supabase")
