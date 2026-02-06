@@ -4,11 +4,11 @@
   },
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.845.0",
+    "@aws-sdk/client-s3": "^3.984.0",
     "@supabase/supabase-js": "2.51.0",
-    "cross-env": "^7.0.3",
-    "envalid": "^8.1.0",
-    "vitest": "^3.2.4",
-    "wretch": "^2.11.0"
+    "cross-env": "^10.1.0",
+    "envalid": "^8.1.1",
+    "vitest": "^4.0.18",
+    "wretch": "^3.0.6"
   }
 }
