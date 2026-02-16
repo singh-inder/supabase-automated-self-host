@@ -385,7 +385,9 @@ sed -e "3d" \
     -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
     -e "s|S3_PROTOCOL_ACCESS_KEY_ID.*|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
     -e "s|S3_PROTOCOL_ACCESS_KEY_SECRET.*|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
-    -e "s|MINIO_ROOT_PASSWORD.*|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" .env.example >.env
+    -e "s|MINIO_ROOT_PASSWORD.*|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
+    -e "s|LOGFLARE_PUBLIC_ACCESS_TOKEN.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
+    -e "s|LOGFLARE_PRIVATE_ACCESS_TOKEN.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
 
 update_yaml_file() {
     # https://github.com/mikefarah/yq/issues/465#issuecomment-2265381565
