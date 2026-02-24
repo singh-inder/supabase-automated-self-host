@@ -30,7 +30,8 @@ services:
 
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.37.1
+    image: supabase/storage-api:v1.37.8
+    restart: unless-stopped
     depends_on:
       db:
         # Disable this if you are using an external Postgres database
@@ -54,7 +55,6 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
-    restart: unless-stopped
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
@@ -70,7 +70,6 @@ services:
       GLOBAL_S3_FORCE_PATH_STYLE: true
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
-      AWS_DEFAULT_REGION: stub
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
       TENANT_ID: ${STORAGE_TENANT_ID}
       # TODO: https://github.com/supabase/storage-api/issues/55
@@ -81,16 +80,3 @@ services:
       S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
     volumes:
       - ./volumes/storage:/var/lib/storage:z
-
-  imgproxy:
-    container_name: supabase-imgproxy
-    image: darthsim/imgproxy:v3.8.0
-    healthcheck:
-      test: [ "CMD", "imgproxy", "health" ]
-      timeout: 5s
-      interval: 5s
-      retries: 3
-    environment:
-      IMGPROXY_BIND: ":5001"
-      IMGPROXY_USE_ETAG: "true"
-      IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
