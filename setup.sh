@@ -380,7 +380,7 @@ sed -e "3d" \
     -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
     -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
     -e "s|PG_META_CRYPTO_KEY.*|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
-    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain/goapi|" \
+    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain|" \
     -e "s|SUPABASE_PUBLIC_URL.*|SUPABASE_PUBLIC_URL=$domain|" \
     -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
     -e "s|S3_PROTOCOL_ACCESS_KEY_ID.*|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
@@ -591,10 +591,6 @@ if [[ "$proxy" == "caddy" ]]; then
             }
         }
 
-        handle_path /goapi/* {
-            reverse_proxy kong:8000
-        }
-
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
 			    {\$PROXY_AUTH_USERNAME} {\$PROXY_AUTH_PASSWORD}
@@ -654,10 +650,6 @@ server {
             client_max_body_size 0;
             proxy_pass http://storage:5000/;
         }
-
-    	location /goapi/ {
-		    proxy_pass http://kong_upstream/;
-	    }
 
         location /rest {
             proxy_pass http://kong_upstream;

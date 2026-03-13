@@ -35,7 +35,7 @@ jobs:
           skip_after_successful_duplicate: "true"
           cancel_others: "true"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name:
           make sure storage image version is same in docker-compose and docker-compose.s3
