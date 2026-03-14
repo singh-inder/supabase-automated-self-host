@@ -424,7 +424,7 @@ if [[ "$proxy" == "caddy" ]]; then
 
     # BIND MOUNT VOLUMES CONFIG
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.caddy.image=\"caddy:2.10.2\" |
+                        .services.caddy.image=\"caddy:2.11.2\" |
                         .services.caddy.environment.DOMAIN=\"\${SUPABASE_PUBLIC_URL:?error}\" |
                         .services.caddy.volumes=[\"$caddyfile_local:/etc/caddy/Caddyfile\",
                                                 \"$caddy_local_volume/caddy_data:/data\",
