@@ -27,7 +27,7 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-tty="-i -t"
+tty="-it"
 update_env=false
 
 if [ "$1" = "--update-env" ]; then
