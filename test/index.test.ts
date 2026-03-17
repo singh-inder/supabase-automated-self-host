@@ -106,12 +106,14 @@ describe.concurrent("supabase test suite", () => {
     });
   };
 
-  const cases = [
+  const allKeys = [
     [ANON_KEY, "anon_key"],
     [SERVICE_ROLE_KEY, "service_role_key"]
   ];
 
-  test.for(cases)(
+  const adminKeys = [[SERVICE_ROLE_KEY, "service_role_key"]];
+
+  test.for(allKeys)(
     "CRUD operations with verified user - $1",
     async ([key], { expect }) => {
       const supabase = createSupabaseClient(key);
@@ -142,7 +144,7 @@ describe.concurrent("supabase test suite", () => {
     }
   );
 
-  test.for(cases)("Storage - $1", async ([key], { expect }) => {
+  test.for(adminKeys)("Storage - $1", async ([key], { expect }) => {
     const supabase = createSupabaseClient(key);
     const authRes = await createVerifiedUser(supabase, getRandomCredentials());
     expect(authRes.error).toBeNull();
@@ -203,7 +205,7 @@ describe.concurrent("supabase test suite", () => {
     );
   });
 
-  test("Upload via s3 client - signed url - $1", async ({ expect }) => {
+  test("Upload via s3 client - signed url", async ({ expect }) => {
     const body = "lorem-ipsum";
     const id = `${crypto.randomUUID()}.txt`;
     const command = new PutObjectCommand({
@@ -221,7 +223,7 @@ describe.concurrent("supabase test suite", () => {
     expect(await data?.text()).toEqual(body);
   });
 
-  test.for([[SERVICE_ROLE_KEY, "service_role_key"]])(
+  test.for(adminKeys)(
     "Realtime db changes - $1",
     async ([key], { expect, onTestFinished }) => {
       const supabase = createSupabaseClient(key);
@@ -253,7 +255,7 @@ describe.concurrent("supabase test suite", () => {
     }
   );
 
-  test.for(cases)("Test functions - $1", async ([key], { expect }) => {
+  test.for(allKeys)("Test functions - $1", async ([key], { expect }) => {
     const supabase = createSupabaseClient(ANON_KEY);
 
     const { error, data } = await supabase.functions.invoke("hello", {
