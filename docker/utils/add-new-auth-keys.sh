@@ -138,8 +138,11 @@ function updateFile() {
   for (const key in envs) {
     if (!Object.hasOwn(envs, key)) continue;
     const regex = new RegExp(`^${key}=.*$`, "m");
+    const pair = `${key}=${envs[key]}`;
     if (regex.test(content)) {
-      content = content.replace(regex, `${key}=${envs[key]}`);
+      content = content.replace(regex, pair);
+    } else {
+      content += `\n${pair}`;
     }
   }
   fs.writeFileSync(".env", content, { encoding: "utf-8" });
