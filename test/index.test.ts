@@ -14,7 +14,9 @@ const getRandomCredentials = () => ({
 });
 
 const userCredentials = getRandomCredentials();
-const testImg = fs.readFileSync(path.resolve(import.meta.dirname, "sample.webp"));
+const testImg = fs.readFileSync(
+  path.resolve(import.meta.dirname, "testdata/sample.webp")
+);
 
 beforeAll(async () => {
   const PG_USER = "postgres";
