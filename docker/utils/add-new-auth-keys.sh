@@ -27,16 +27,23 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-interactive="-i"
-if [ "$1" = "--update-env" ]; then interactive=""; fi
+tty="-i -t"
+update_env=false
 
-docker run --rm -v ./:/app --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
+if [ "$1" = "--update-env" ]; then
+  update_env=true
+  tty=""
+fi
+
+docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
+  cat <<-'EOF'
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("Error: JWT_SECRET not found in .env");
   process.exit(1);
 }
 const crypto = require("node:crypto");
+const fs = require("node:fs");
 
 const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", {
   namedCurve: "P-256"
@@ -121,27 +128,31 @@ for (const key in envs) {
   console.log(`${key}=${envs[key]}`);
 }
 
-if (process.stdin.isTTY) {
+function updateFile() {
+  console.log("Updating env file");
+  fs.cpSync(".env", ".env.old");
+
+  let content = fs.readFileSync(".env", { encoding: "utf-8" });
+  for (const key in envs) {
+    if (!Object.hasOwn(envs, key)) continue;
+    const regex = new RegExp(`^${key}=.*$`, "m");
+    if (regex.test(content)) {
+      content = content.replace(regex, `${key}=${envs[key]}`);
+    }
+  }
+  fs.writeFileSync(".env", content, { encoding: "utf-8" });
+};
+
+if (process.env.UPDATE_ENV_FILE === "true") {
+  updateFile();
+} else if (process.stdin.isTTY) {
   const { createInterface } = require("readline/promises");
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   (async () => {
     try {
       const answer = await readline.question("Update env file? (y/n): ");
       if (answer.toLowerCase() !== "y") return;
-
-      const fs = require("node:fs");
-      console.log("Updating env file");
-      fs.cpSync(".env", ".env.old");
-
-      let content = fs.readFileSync(".env", { encoding: "utf-8" });
-      for (const key in envs) {
-        if (!Object.hasOwn(envs, key)) continue;
-        const regex = new RegExp(`^${key}=.*$`, "m");
-        if (regex.test(content)) {
-          content = content.replace(regex, `${key}=${envs[key]}`);
-        }
-      }
-      fs.writeFileSync(".env", content, { encoding: "utf-8" });
+      updateFile();
     } catch (error) {
       console.error("Error:", error.message);
     } finally {
@@ -150,3 +161,4 @@ if (process.stdin.isTTY) {
   })();
 }
 EOF
+)"
