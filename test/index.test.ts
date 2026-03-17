@@ -106,39 +106,45 @@ describe.concurrent("supabase test suite", () => {
     });
   };
 
-  test("CRUD operations with verified user", async ({ expect }) => {
-    const supabase = createSupabaseClient(ANON_KEY);
-    const authRes = await supabase.auth.signInWithPassword(userCredentials);
+  const cases = [
+    [ANON_KEY, "anon_key"],
+    [SERVICE_ROLE_KEY, "service_role_key"]
+  ];
 
-    expect(authRes.error).toBeNull();
-    const user = authRes.data.user;
+  test.for(cases)(
+    "CRUD operations with verified user - $1",
+    async ([key], { expect }) => {
+      const supabase = createSupabaseClient(key);
+      const authRes = await supabase.auth.signInWithPassword(userCredentials);
 
-    const userId = user?.id;
-    expect(userId).toBeTruthy();
+      expect(authRes.error).toBeNull();
+      const user = authRes.data.user;
 
-    const createRes = await createNote(supabase, userId!);
+      const userId = user?.id;
+      expect(userId).toBeTruthy();
 
-    expect(createRes.error).toBeNull();
+      const createRes = await createNote(supabase, userId!);
 
-    const id: number | undefined = createRes.data?.id;
-    expect(id).not.toBeNaN();
+      expect(createRes.error).toBeNull();
 
-    const updateRes = await supabase
-      .from(tableName)
-      .update({ task: "This is an updated note" })
-      .eq("id", id);
+      const id: number | undefined = createRes.data?.id;
+      expect(id).not.toBeNaN();
 
-    expect(updateRes.error).toBeNull();
+      const updateRes = await supabase
+        .from(tableName)
+        .update({ task: "This is an updated note" })
+        .eq("id", id);
 
-    const deleteRes = await supabase.from(tableName).delete().eq("id", id);
-    expect(deleteRes.error).toBeNull();
-  });
+      expect(updateRes.error).toBeNull();
 
-  test("Storage", async ({ expect }) => {
-    const creds = getRandomCredentials();
-    await createVerifiedUser(createSupabaseClient(SERVICE_ROLE_KEY), creds);
-    const supabase = createSupabaseClient(ANON_KEY);
-    const authRes = await supabase.auth.signInWithPassword(creds);
+      const deleteRes = await supabase.from(tableName).delete().eq("id", id);
+      expect(deleteRes.error).toBeNull();
+    }
+  );
+
+  test.for(cases)("Storage - $1", async ([key], { expect }) => {
+    const supabase = createSupabaseClient(key);
+    const authRes = await createVerifiedUser(supabase, getRandomCredentials());
     expect(authRes.error).toBeNull();
 
     const filePath = `${crypto.randomUUID()}.webp`;
@@ -197,54 +203,63 @@ describe.concurrent("supabase test suite", () => {
     );
   });
 
-  test("Upload via s3 client - signed url", async ({ expect }) => {
-    const body = "lorem-ipsum";
-    const id = `${crypto.randomUUID()}.txt`;
-    const command = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: id,
-      ContentType: "text/plain"
-    });
-    const signedUrl = await getSignedUrl(getS3Client(), command, {
-      expiresIn: 5 * 60
-    });
-    await wretch(signedUrl).headers({ "Content-Type": "text/plain" }).put(body).res();
-    const supabase = createSupabaseClient(ANON_KEY);
-    await supabase.auth.signInWithPassword(userCredentials);
-    const { data } = await supabase.storage.from(bucketName).download(id);
-    expect(await data?.text()).toEqual(body);
-  });
+  test.for(cases)(
+    "Upload via s3 client - signed url - $1",
+    async ([key], { expect }) => {
+      const body = "lorem-ipsum";
+      const id = `${crypto.randomUUID()}.txt`;
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: id,
+        ContentType: "text/plain"
+      });
+      const signedUrl = await getSignedUrl(getS3Client(), command, {
+        expiresIn: 5 * 60
+      });
+      await wretch(signedUrl)
+        .headers({ "Content-Type": "text/plain" })
+        .put(body)
+        .res();
+      const supabase = createSupabaseClient(key);
+      await supabase.auth.signInWithPassword(userCredentials);
+      const { data } = await supabase.storage.from(bucketName).download(id);
+      expect(await data?.text()).toEqual(body);
+    }
+  );
 
-  test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
-    const supabase = createSupabaseClient(SERVICE_ROLE_KEY);
-    const authRes = await createVerifiedUser(supabase, getRandomCredentials());
+  test.for([[SERVICE_ROLE_KEY, "service_role_key"]])(
+    "Realtime db changes - $1",
+    async ([key], { expect, onTestFinished }) => {
+      const supabase = createSupabaseClient(key);
+      const authRes = await createVerifiedUser(supabase, getRandomCredentials());
 
-    expect(authRes.error).toBeNull();
+      expect(authRes.error).toBeNull();
 
-    const mockFn = vi.fn(payload => {});
+      const mockFn = vi.fn(payload => {});
 
-    const channel = await new Promise<RealtimeChannel>(res => {
-      const ch = supabase
-        .channel("db-changes")
-        .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
-        .subscribe((_, err) => {
-          expect(err).toBeFalsy();
+      const channel = await new Promise<RealtimeChannel>(res => {
+        const ch = supabase
+          .channel("db-changes")
+          .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
+          .subscribe((_, err) => {
+            expect(err).toBeFalsy();
 
-          res(ch);
-        });
-    });
+            res(ch);
+          });
+      });
 
-    onTestFinished(() => void channel.unsubscribe());
+      onTestFinished(() => void channel.unsubscribe());
 
-    const createRes = await createNote(supabase, authRes.data!.user!.id);
-    expect(createRes.error).toBeNull();
+      const createRes = await createNote(supabase, authRes.data!.user!.id);
+      expect(createRes.error).toBeNull();
 
-    await vi.waitFor(() => expect(mockFn).toHaveBeenCalled(), {
-      timeout: 4 * 1000
-    });
-  });
+      await vi.waitFor(() => expect(mockFn).toHaveBeenCalled(), {
+        timeout: 4 * 1000
+      });
+    }
+  );
 
-  test("Test functions", { retry: 2 }, async ({ expect }) => {
+  test.for(cases)("Test functions - $1", async ([key], { expect }) => {
     const supabase = createSupabaseClient(ANON_KEY);
 
     const { error, data } = await supabase.functions.invoke("hello", {
