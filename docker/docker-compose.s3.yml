@@ -15,7 +15,7 @@ services:
       timeout: 10s
       retries: 5
     volumes:
-      - ./volumes/storage:/data:z
+      - minio-data:/data
 
   minio-createbucket:
     image: minio/mc:RELEASE.2025-05-21T01-59-54Z
@@ -44,3 +44,6 @@ services:
 
     volumes:
       - ./volumes/storage:/var/lib/storage:z
+
+volumes:
+  minio-data:
