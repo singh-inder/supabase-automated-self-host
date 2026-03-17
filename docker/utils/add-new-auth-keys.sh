@@ -18,19 +18,19 @@
 set -e
 
 if ! command -v docker >/dev/null 2>&1; then
-    echo "Error: docker is required but not found."
-    exit 1
+  echo "Error: docker is required but not found."
+  exit 1
 fi
 
 if [ ! -f .env ]; then
-    echo "Error: .env file not found. Run setup.sh first."
-    exit 1
+  echo "Error: .env file not found. Run setup.sh first."
+  exit 1
 fi
 
 interactive="-i"
 if [ "$1" = "--update-env" ]; then interactive=""; fi
 
-docker run --rm -t -v ./:/app --env-file=.env --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
+docker run --rm -t -v ./:/app --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("Error: JWT_SECRET not found in .env");
