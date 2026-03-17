@@ -78,7 +78,7 @@ jobs:
           host="$(tldextract --json "$SUPABASE_PUBLIC_URL" | jq -r .fqdn)"
           sudo echo "127.0.0.1 $host" | sudo tee -a /etc/hosts
 
-      - name: Test containers
+      - name: Start containers
         run: |
           set -euo pipefail
           cd docker
@@ -109,10 +109,9 @@ jobs:
       - name: Run tests
         run: |
           set -ex
-          # envs set inside set env vars step
-          cd test && npm ci && npm run test -- run
+          cd test && npm run test -- run
 
-      - name: Reset db & Test containers with minio storage
+      - name: Reset db & start containers with minio storage
         run: |
           set -ex
           cd docker && docker compose down -t0
