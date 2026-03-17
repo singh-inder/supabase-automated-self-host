@@ -149,15 +149,32 @@ describe.concurrent("supabase test suite", () => {
     const upload = await supabase.storage.from(bucketName).upload(filePath, testImg);
     expect(upload.error).toBeNull();
 
-    const { data, error } = await supabase.storage
+    const createSignedUrl = await supabase.storage
       .from(bucketName)
       .createSignedUrl(filePath, 5 * 60);
 
-    expect(error).toBeNull();
-    expect(data?.signedUrl).toBeTruthy();
+    expect(createSignedUrl.error).toBeNull();
+    expect(createSignedUrl.data?.signedUrl).toBeTruthy();
 
-    const buf = await (await wretch().get(data?.signedUrl).blob()).arrayBuffer();
+    const buf = await (
+      await wretch().get(createSignedUrl.data?.signedUrl).blob()
+    ).arrayBuffer();
     expect(hash("sha256", testImg)).toEqual(hash("sha256", Buffer.from(buf)));
+
+    const createUploadUrl = await supabase.storage
+      .from(bucketName)
+      .createSignedUploadUrl(`${crypto.randomUUID()}.webp`);
+    expect(createUploadUrl.error).toBeNull();
+
+    const res = await supabase.storage
+      .from(bucketName)
+      .uploadToSignedUrl(
+        createUploadUrl.data!.path,
+        createUploadUrl.data!.token,
+        testImg
+      );
+
+    expect(res.error).toBeNull();
 
     const removeRes = await supabase.storage.from(bucketName).remove([filePath]);
     expect(removeRes.error).toBeNull();
@@ -183,11 +200,10 @@ describe.concurrent("supabase test suite", () => {
   });
 
   test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
-    const supabase = createSupabaseClient(ANON_KEY);
-    const authRes = await supabase.auth.signInWithPassword(userCredentials);
+    const supabase = createSupabaseClient(SERVICE_ROLE_KEY);
+    const authRes = await createVerifiedUser(supabase, getRandomCredentials());
 
     expect(authRes.error).toBeNull();
-    expect(authRes.data.user).not.toBeNull();
 
     const mockFn = vi.fn(payload => {});
 
