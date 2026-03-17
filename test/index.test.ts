@@ -223,7 +223,7 @@ describe.concurrent("supabase test suite", () => {
     expect(await data?.text()).toEqual(body);
   });
 
-  test.for(adminKeys)(
+  test.for(allKeys)(
     "Realtime db changes - $1",
     async ([key], { expect, onTestFinished }) => {
       const supabase = createSupabaseClient(key);
@@ -233,16 +233,10 @@ describe.concurrent("supabase test suite", () => {
 
       const mockFn = vi.fn(payload => {});
 
-      const channel = await new Promise<RealtimeChannel>(res => {
-        const ch = supabase
-          .channel("db-changes")
-          .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
-          .subscribe((_, err) => {
-            expect(err).toBeFalsy();
-
-            res(ch);
-          });
-      });
+      const channel = supabase
+        .channel("db-changes")
+        .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
+        .subscribe();
 
       onTestFinished(() => void channel.unsubscribe());
 
