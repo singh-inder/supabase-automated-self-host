@@ -37,7 +37,7 @@ jobs:
       REPO: ${{ inputs.repo }}
       PROXY: ${{ inputs.proxy }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: execute setup script
         # after checkout, pwd is the root of the repo thats why cd ../
@@ -56,7 +56,7 @@ jobs:
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: lts/*
 
