@@ -301,7 +301,7 @@ if [[ "$with_authelia" == true ]]; then
     setup_redis=""
 
     if [[ "$CI" == true ]]; then
-        email="johndoe@gmail.com"
+        email="indersingh.dev@outlook.com"
         display_name="Inder Singh"
         if [[ "$WITH_REDIS" == true ]]; then setup_redis=true; fi
     fi
@@ -568,11 +568,9 @@ if [[ "$proxy" == "caddy" ]]; then
 
     # https://stackoverflow.com/a/3953712/18954618
     echo "
-    import $caddySnippetsPath/cors.conf
-
     {\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/* /mcp /api/mcp
+        @supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /api/mcp /mcp
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -583,13 +581,6 @@ if [[ "$proxy" == "caddy" ]]; then
         handle @supa_api {
 		    reverse_proxy kong:8000
 	    }
-
-        handle_path /storage/v1/* {
-            import cors *
-            reverse_proxy storage:5000 {
-                header_up X-Forwarded-Prefix /{http.request.orig_uri.path.0}/{http.request.orig_uri.path.1}
-            }
-        }
 
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
@@ -636,7 +627,12 @@ server {
     
         ssl_dhparam /etc/letsencrypt/dhparams/dhparam.pem;
 
+        location /graphql {
+            proxy_pass http://kong_upstream;
+        }
+
         location /realtime {
+            include $nginxSnippetsPath/common_proxy_headers.conf;
             proxy_pass http://kong_upstream;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \"upgrade\";
@@ -644,11 +640,12 @@ server {
         }
 
         location /storage/v1/ {
-            include $nginxSnippetsPath/cors.conf;
             include $nginxSnippetsPath/common_proxy_headers.conf;
-            proxy_set_header X-Forwarded-Prefix /storage/v1;
+            proxy_buffering off;
+            proxy_request_buffering off;
+            chunked_transfer_encoding off;
             client_max_body_size 0;
-            proxy_pass http://storage:5000/;
+            proxy_pass http://kong_upstream;
         }
 
         location /rest {
