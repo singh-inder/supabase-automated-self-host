@@ -223,13 +223,12 @@ describe.concurrent("supabase test suite", () => {
     expect(await data?.text()).toEqual(body);
   });
 
-  test.for(adminKeys)(
+  test.for(allKeys)(
     "Realtime db changes - $1",
     { retry: 5 },
     async ([key], { expect, onTestFinished }) => {
       const supabase = createSupabaseClient(key);
-      const authRes = await createVerifiedUser(supabase, getRandomCredentials());
-
+      const authRes = await supabase.auth.signInWithPassword(userCredentials);
       expect(authRes.error).toBeNull();
 
       const mockFn = vi.fn(payload => {});
