@@ -42,8 +42,5 @@ services:
       AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
 
-    volumes:
-      - ./volumes/storage:/var/lib/storage:z
-
 volumes:
   minio-data:
