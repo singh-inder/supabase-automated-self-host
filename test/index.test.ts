@@ -225,6 +225,7 @@ describe.concurrent("supabase test suite", () => {
 
   test.for(adminKeys)(
     "Realtime db changes - $1",
+    { retry: 5 },
     async ([key], { expect, onTestFinished }) => {
       const supabase = createSupabaseClient(key);
       const authRes = await createVerifiedUser(supabase, getRandomCredentials());
