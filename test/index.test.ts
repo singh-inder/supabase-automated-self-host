@@ -240,11 +240,7 @@ describe.concurrent("supabase test suite", () => {
       const channel = await new Promise<RealtimeChannel>(res => {
         const ch = supabase
           .channel("db-changes")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: tableName },
-            mockFn
-          )
+          .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
           .subscribe(status => {
             if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) res(ch);
           });
