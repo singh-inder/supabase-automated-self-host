@@ -30,7 +30,6 @@ fi
 interactive="-i"
 if [ "$1" = "--update-env" ]; then interactive=""; fi
 
-# docker run --rm -v .env:/app/.env --workdir=/app -t node:24-alpine node -e <<-EOF
 docker run --rm -t -v ./:/app --env-file=.env --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
@@ -141,8 +140,8 @@ if (process.stdin.isTTY) {
         if (regex.test(content)) {
           content = content.replace(regex, `${key}=${envs[key]}`);
         }
-        fs.writeFileSync(".env", content, { encoding: "utf-8" });
       }
+      fs.writeFileSync(".env", content, { encoding: "utf-8" });
     } catch (error) {
       console.error("Error:", error.message);
     } finally {
