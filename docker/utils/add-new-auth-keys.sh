@@ -33,6 +33,8 @@ update_env=false
 if [ "$1" = "--update-env" ]; then
   update_env=true
   tty=""
+elif [ ! -t 0 ] || [ ! -t 1 ]; then
+  tty=""
 fi
 
 docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
