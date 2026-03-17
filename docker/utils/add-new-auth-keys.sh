@@ -30,7 +30,7 @@ fi
 interactive="-i"
 if [ "$1" = "--update-env" ]; then interactive=""; fi
 
-docker run --rm -t -v ./:/app --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
+docker run --rm -v ./:/app --workdir=/app $interactive node:24-alpine node --env-file=.env -e <<-'EOF'
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("Error: JWT_SECRET not found in .env");
@@ -117,7 +117,7 @@ const envs = {
 };
 
 for (const key in envs) {
-  if (!Object.hasOwn(object, key)) continue;
+  if (!Object.hasOwn(envs, key)) continue;
   console.log(`${key}=${envs[key]}`);
 }
 
