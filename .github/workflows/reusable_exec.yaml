@@ -141,10 +141,11 @@ jobs:
           -czvf ~/"$ARTIFACT".tar.gz "$REPO" > /dev/null
 
       - name: Upload generated tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         # action cannot detect "$ARTIFACT" env var
         with:
           name: ${{ inputs.artifact_name }}
           path: ~/${{ inputs.artifact_name }}.tar.gz
           retention-days: 5
           if-no-files-found: error
+          archive: false
