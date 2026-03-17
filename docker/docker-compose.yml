@@ -11,7 +11,7 @@ services:
 
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2026.02.16-sha-26c615c
+    image: supabase/studio:2026.03.16-sha-5528817
     restart: unless-stopped
     healthcheck:
       test:
@@ -25,6 +25,8 @@ services:
       interval: 5s
       retries: 3
     depends_on:
+      analytics:
+        condition: service_healthy
       kong:
         condition: service_healthy
     environment:
@@ -89,9 +91,6 @@ services:
       # https://github.com/supabase/supabase/issues/12661
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
       - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
-    depends_on:
-      analytics:
-        condition: service_healthy
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
@@ -108,7 +107,6 @@ services:
       SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    # https://unix.stackexchange.com/a/294837
     entrypoint: /home/kong/kong-entrypoint.sh
 
   auth:
@@ -240,7 +238,7 @@ services:
 
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v14.5
+    image: postgrest/postgrest:v14.6
     restart: unless-stopped
     depends_on:
       db:
@@ -342,7 +340,6 @@ services:
       # JWKS for token verification (EC public + legacy symmetric)
       #JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
 
-      PGRST_JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
@@ -350,6 +347,12 @@ services:
       STORAGE_BACKEND: file
       # S3 bucket when using S3 backend, directory name when using 'file'
       GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
+      # S3 Backend configuration
+      #GLOBAL_S3_ENDPOINT: https://your-s3-endpoint
+      #GLOBAL_S3_PROTOCOL: https
+      #GLOBAL_S3_FORCE_PATH_STYLE: true
+      #AWS_ACCESS_KEY_ID: your-access-key-id
+      #AWS_SECRET_ACCESS_KEY: your-secret-access-key
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
       TENANT_ID: ${STORAGE_TENANT_ID}
       # TODO: https://github.com/supabase/storage-api/issues/55
