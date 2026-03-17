@@ -21,20 +21,17 @@ const testImg = fs.readFileSync(
 
 beforeAll(async () => {
   const PG_USER = "postgres";
-  const {
-    POSTGRES_PASSWORD,
-    POSTGRES_DB,
-    POOLER_TENANT_ID,
-    POSTGRES_PORT,
-    SERVICE_ROLE_KEY
-  } = cleanEnv(process.env, {
-    SUPABASE_PUBLIC_URL: str(),
-    SERVICE_ROLE_KEY: str(),
-    POSTGRES_PASSWORD: str(),
-    POSTGRES_DB: str(),
-    POOLER_TENANT_ID: str(),
-    POSTGRES_PORT: str()
-  });
+  const { POSTGRES_PASSWORD, POSTGRES_DB, POOLER_TENANT_ID, POSTGRES_PORT } = cleanEnv(
+    process.env,
+    {
+      SUPABASE_PUBLIC_URL: str(),
+      SERVICE_ROLE_KEY: str(),
+      POSTGRES_PASSWORD: str(),
+      POSTGRES_DB: str(),
+      POOLER_TENANT_ID: str(),
+      POSTGRES_PORT: str()
+    }
+  );
 
   const db = await new Client(
     `postgres://${PG_USER}.${POOLER_TENANT_ID}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}`
@@ -46,7 +43,7 @@ beforeAll(async () => {
   await db.end();
 
   const { error } = await createVerifiedUser(
-    createSupabaseClient(SERVICE_ROLE_KEY),
+    createSupabaseClient(process.env.SERVICE_ROLE_KEY!),
     userCredentials
   );
   if (error) throw error;
