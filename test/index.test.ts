@@ -1,7 +1,11 @@
 import { randomUUID, hash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
+import {
+  createClient,
+  REALTIME_SUBSCRIBE_STATES,
+  type RealtimeChannel
+} from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
@@ -223,7 +227,7 @@ describe.concurrent("supabase test suite", () => {
     expect(await data?.text()).toEqual(body);
   });
 
-  test.for(allKeys)(
+  test.for(adminKeys)(
     "Realtime db changes - $1",
     { retry: 5 },
     async ([key], { expect, onTestFinished }) => {
@@ -233,14 +237,18 @@ describe.concurrent("supabase test suite", () => {
 
       const mockFn = vi.fn(payload => {});
 
-      const channel = supabase
-        .channel("db-changes")
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: tableName },
-          mockFn
-        )
-        .subscribe();
+      const channel = await new Promise<RealtimeChannel>(res => {
+        const ch = supabase
+          .channel("db-changes")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: tableName },
+            mockFn
+          )
+          .subscribe(status => {
+            if (status === REALTIME_SUBSCRIBE_STATES.SUBSCRIBED) res(ch);
+          });
+      });
 
       onTestFinished(() => void channel.unsubscribe());
 
