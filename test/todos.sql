@@ -43,10 +43,6 @@ INSERT INTO storage.buckets (id, name)
 VALUES ('test-bucket', 'test-bucket')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO storage.buckets (id, name)
-VALUES ('another-bucket', 'another-bucket')
-ON CONFLICT (id) DO NOTHING;
-
 DROP POLICY IF EXISTS "Only allow access to authenticated users" ON storage.objects;
 
 CREATE POLICY "Only allow access to authenticated users"

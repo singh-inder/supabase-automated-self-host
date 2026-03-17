@@ -1,30 +1,37 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, hash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { S3Client, ListBucketsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Client } from "pg";
+
+const getRandomCredentials = () => ({
+  email: `j-${randomUUID()}@mail.com`,
+  password: "password123456"
+});
+
+const userCredentials = getRandomCredentials();
+const testImg = fs.readFileSync(path.resolve(import.meta.dirname, "sample.webp"));
 
 beforeAll(async () => {
   const PG_USER = "postgres";
-  const { POSTGRES_PASSWORD, POSTGRES_DB, POOLER_TENANT_ID, POSTGRES_PORT } = cleanEnv(
-    process.env,
-    {
-      SUPABASE_PUBLIC_URL: str(),
-      SERVICE_ROLE_KEY: str(),
-      ANON_KEY: str(),
-      REGION: str(),
-      S3_PROTOCOL_ACCESS_KEY_ID: str(),
-      S3_PROTOCOL_ACCESS_KEY_SECRET: str(),
-      POSTGRES_PASSWORD: str(),
-      POSTGRES_DB: str(),
-      POOLER_TENANT_ID: str(),
-      POSTGRES_PORT: str()
-    }
-  );
+  const {
+    POSTGRES_PASSWORD,
+    POSTGRES_DB,
+    POOLER_TENANT_ID,
+    POSTGRES_PORT,
+    SERVICE_ROLE_KEY
+  } = cleanEnv(process.env, {
+    SUPABASE_PUBLIC_URL: str(),
+    SERVICE_ROLE_KEY: str(),
+    POSTGRES_PASSWORD: str(),
+    POSTGRES_DB: str(),
+    POOLER_TENANT_ID: str(),
+    POSTGRES_PORT: str()
+  });
 
   const db = await new Client(
     `postgres://${PG_USER}.${POOLER_TENANT_ID}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}`
@@ -34,37 +41,32 @@ beforeAll(async () => {
   });
   await db.query(sql);
   await db.end();
+
+  const { error } = await createVerifiedUser(
+    createSupabaseClient(SERVICE_ROLE_KEY),
+    userCredentials
+  );
+  if (error) throw error;
 });
 
-const tableName = "todos";
+const tableName = "todos",
+  bucketName = "test-bucket";
 
-const createCustomClient = (key: string) => {
+const createSupabaseClient = (key: string) => {
   return createClient(process.env.SUPABASE_PUBLIC_URL!, key, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 };
 
-const getCredentials = () => ({
-  email: `j-${randomUUID()}@mail.com`,
-  password: "password123456"
-});
-
-const createBucketAndUpload = async (
-  client: SupabaseClient,
-  bucket: string,
-  filePath: string
-) => {
-  const blob = await wretch("https://placehold.co/400").get().blob();
-
-  return await client.storage.from(bucket).upload(filePath, blob);
-};
-
-type SupabaseClient = ReturnType<typeof createCustomClient>;
+type SupabaseClient = ReturnType<typeof createSupabaseClient>;
 
 /** needs supabase client created with SERVICE_ROLE_KEY */
-const createVerifiedUser = (supabase: SupabaseClient) => {
+const createVerifiedUser = (
+  supabase: SupabaseClient,
+  creds: ReturnType<typeof getRandomCredentials>
+) => {
   return supabase.auth.admin.createUser({
-    ...getCredentials(),
+    ...creds,
     email_confirm: true
   });
 };
@@ -83,12 +85,30 @@ const createNote = async (supabase: SupabaseClient, userId: string) => {
 };
 
 describe.concurrent("supabase test suite", () => {
-  const SERVICE_ROLE_KEY = process.env.SERVICE_ROLE_KEY!;
-  const ANON_KEY = process.env.ANON_KEY!;
+  const { SERVICE_ROLE_KEY, ANON_KEY } = cleanEnv(process.env, {
+    SUPABASE_PUBLIC_URL: str(),
+    SERVICE_ROLE_KEY: str(),
+    ANON_KEY: str(),
+    REGION: str(),
+    S3_PROTOCOL_ACCESS_KEY_ID: str(),
+    S3_PROTOCOL_ACCESS_KEY_SECRET: str()
+  });
+
+  const getS3Client = () => {
+    return new S3Client({
+      endpoint: process.env.SUPABASE_PUBLIC_URL! + "/storage/v1/s3",
+      forcePathStyle: true,
+      region: process.env.REGION!,
+      credentials: {
+        accessKeyId: process.env.S3_PROTOCOL_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.S3_PROTOCOL_ACCESS_KEY_SECRET!
+      }
+    });
+  };
 
   test("CRUD operations with verified user", async ({ expect }) => {
-    const supabase = createCustomClient(SERVICE_ROLE_KEY);
-    const authRes = await createVerifiedUser(supabase);
+    const supabase = createSupabaseClient(ANON_KEY);
+    const authRes = await supabase.auth.signInWithPassword(userCredentials);
 
     expect(authRes.error).toBeNull();
     const user = authRes.data.user;
@@ -115,60 +135,54 @@ describe.concurrent("supabase test suite", () => {
   });
 
   test("Storage", async ({ expect }) => {
-    const supabase = createCustomClient(SERVICE_ROLE_KEY);
-    const authRes = await createVerifiedUser(supabase);
-
+    const creds = getRandomCredentials();
+    await createVerifiedUser(createSupabaseClient(SERVICE_ROLE_KEY), creds);
+    const supabase = createSupabaseClient(ANON_KEY);
+    const authRes = await supabase.auth.signInWithPassword(creds);
     expect(authRes.error).toBeNull();
-    expect(authRes.data.user).not.toBeNull();
 
-    const filePath = "test.jpg";
+    const filePath = `${crypto.randomUUID()}.webp`;
     // buckets are defined in todos.sql
-    const bucket = "test-bucket";
 
-    const upload = await createBucketAndUpload(supabase, bucket, filePath);
+    const upload = await supabase.storage.from(bucketName).upload(filePath, testImg);
     expect(upload.error).toBeNull();
 
-    const signedUrl = await supabase.storage
-      .from(bucket)
+    const { data, error } = await supabase.storage
+      .from(bucketName)
       .createSignedUrl(filePath, 5 * 60);
 
-    expect(signedUrl.error).toBeNull();
+    expect(error).toBeNull();
+    expect(data?.signedUrl).toBeTruthy();
 
-    [signedUrl.data, signedUrl.data?.signedUrl].forEach(v => expect(v).toBeTruthy());
+    const buf = await (await wretch().get(data?.signedUrl).blob()).arrayBuffer();
+    expect(hash("sha256", testImg)).toEqual(hash("sha256", Buffer.from(buf)));
 
-    const removeRes = await supabase.storage.from(bucket).remove([filePath]);
+    const removeRes = await supabase.storage.from(bucketName).remove([filePath]);
     expect(removeRes.error).toBeNull();
   });
 
-  test("Access buckets via s3 client", async ({ expect }) => {
-    const supabase = createCustomClient(SERVICE_ROLE_KEY);
-    const authRes = await createVerifiedUser(supabase);
+  test("List buckets via s3 client", async ({ expect }) => {
+    const s3Client = getS3Client();
+    const buckets = (await s3Client.send(new ListBucketsCommand())).Buckets;
+    expect(buckets).toEqual(
+      expect.arrayContaining([expect.objectContaining({ Name: bucketName })])
+    );
+  });
 
-    expect(authRes.error).toBeNull();
-    expect(authRes.data.user).not.toBeNull();
-
-    const filePath = `test${Math.floor(Math.random() * 100000)}.jpg`;
-    const upload = await createBucketAndUpload(supabase, "another-bucket", filePath);
-    expect(upload.error).toBeNull();
-
-    const s3Client = new S3Client({
-      endpoint: process.env.SUPABASE_PUBLIC_URL! + "/storage/v1/s3",
-      forcePathStyle: true,
-      region: process.env.REGION!,
-      credentials: {
-        accessKeyId: process.env.S3_PROTOCOL_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.S3_PROTOCOL_ACCESS_KEY_SECRET!
-      }
-    });
-
-    expect(
-      Array.isArray((await s3Client.send(new ListBucketsCommand())).Buckets)
-    ).toBe(true);
+  test("Upload img via s3 client", async () => {
+    await getS3Client().send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: `${crypto.randomUUID()}.webp`,
+        Body: testImg,
+        ContentType: "image/webp"
+      })
+    );
   });
 
   test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
-    const supabase = createCustomClient(SERVICE_ROLE_KEY);
-    const authRes = await createVerifiedUser(supabase);
+    const supabase = createSupabaseClient(ANON_KEY);
+    const authRes = await supabase.auth.signInWithPassword(userCredentials);
 
     expect(authRes.error).toBeNull();
     expect(authRes.data.user).not.toBeNull();
@@ -197,7 +211,7 @@ describe.concurrent("supabase test suite", () => {
   });
 
   test("Test functions", { retry: 2 }, async ({ expect }) => {
-    const supabase = createCustomClient(ANON_KEY);
+    const supabase = createSupabaseClient(ANON_KEY);
 
     const { error, data } = await supabase.functions.invoke("hello", {
       method: "GET"
