@@ -6,6 +6,7 @@ import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
 import { S3Client, ListBucketsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Client } from "pg";
 
 const getRandomCredentials = () => ({
@@ -197,6 +198,24 @@ describe.concurrent("supabase test suite", () => {
         ContentType: "image/webp"
       })
     );
+  });
+
+  test("Upload via s3 client - signed url", async ({ expect }) => {
+    const body = "lorem-ipsum";
+    const id = `${crypto.randomUUID()}.txt`;
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: id,
+      ContentType: "text/plain"
+    });
+    const signedUrl = await getSignedUrl(getS3Client(), command, {
+      expiresIn: 5 * 60
+    });
+    await wretch(signedUrl).headers({ "Content-Type": "text/plain" }).put(body).res();
+    const supabase = createSupabaseClient(ANON_KEY);
+    await supabase.auth.signInWithPassword(userCredentials);
+    const { data } = await supabase.storage.from(bucketName).download(id);
+    expect(await data?.text()).toEqual(body);
   });
 
   test("Realtime db changes", { retry: 5 }, async ({ expect, onTestFinished }) => {
