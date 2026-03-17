@@ -1,19 +1,39 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { cleanEnv, str } from "envalid";
 import wretch from "wretch";
 import { test, describe, beforeAll, vi } from "vitest";
 import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3";
+import { Client } from "pg";
 
-beforeAll(() => {
-  cleanEnv(process.env, {
-    SUPABASE_PUBLIC_URL: str(),
-    SERVICE_ROLE_KEY: str(),
-    ANON_KEY: str(),
-    REGION: str(),
-    S3_PROTOCOL_ACCESS_KEY_ID: str(),
-    S3_PROTOCOL_ACCESS_KEY_SECRET: str()
+beforeAll(async () => {
+  const PG_USER = "postgres";
+  const { POSTGRES_PASSWORD, POSTGRES_DB, POOLER_TENANT_ID, POSTGRES_PORT } = cleanEnv(
+    process.env,
+    {
+      SUPABASE_PUBLIC_URL: str(),
+      SERVICE_ROLE_KEY: str(),
+      ANON_KEY: str(),
+      REGION: str(),
+      S3_PROTOCOL_ACCESS_KEY_ID: str(),
+      S3_PROTOCOL_ACCESS_KEY_SECRET: str(),
+      POSTGRES_PASSWORD: str(),
+      POSTGRES_DB: str(),
+      POOLER_TENANT_ID: str(),
+      POSTGRES_PORT: str()
+    }
+  );
+
+  const db = await new Client(
+    `postgres://${PG_USER}.${POOLER_TENANT_ID}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}`
+  ).connect();
+  const sql = fs.readFileSync(path.resolve(import.meta.dirname, "./todos.sql"), {
+    encoding: "utf-8"
   });
+  await db.query(sql);
+  await db.end();
 });
 
 const tableName = "todos";
@@ -30,7 +50,7 @@ const getCredentials = () => ({
 });
 
 const createBucketAndUpload = async (
-  client: Client,
+  client: SupabaseClient,
   bucket: string,
   filePath: string
 ) => {
@@ -39,17 +59,17 @@ const createBucketAndUpload = async (
   return await client.storage.from(bucket).upload(filePath, blob);
 };
 
-type Client = ReturnType<typeof createCustomClient>;
+type SupabaseClient = ReturnType<typeof createCustomClient>;
 
-/** needs supabase instance created with SERVICE_ROLE_KEY */
-const createVerifiedUser = (supabase: Client) => {
+/** needs supabase client created with SERVICE_ROLE_KEY */
+const createVerifiedUser = (supabase: SupabaseClient) => {
   return supabase.auth.admin.createUser({
     ...getCredentials(),
     email_confirm: true
   });
 };
 
-const createNote = async (supabase: Client, userId: string) => {
+const createNote = async (supabase: SupabaseClient, userId: string) => {
   const res = await supabase
     .from(tableName)
     .insert({

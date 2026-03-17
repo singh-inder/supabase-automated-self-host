@@ -60,15 +60,12 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Install psql
-        run: sudo apt install -y postgresql-client
-
         # https://stackoverflow.com/a/57969570/18954618
       - name: set env vars
         run: |
           set -e
 
-          envVars=(SUPABASE_PUBLIC_URL POOLER_TENANT_ID POSTGRES_PASSWORD PROXY_AUTH_USERNAME SERVICE_ROLE_KEY)
+          envVars=(SUPABASE_PUBLIC_URL PROXY_AUTH_USERNAME SERVICE_ROLE_KEY)
 
           for var in "${envVars[@]}"; do
               echo "$var=$(node --env-file docker/.env -e "console.log(process.env.$var)")" >>"$GITHUB_ENV"
@@ -87,13 +84,6 @@ jobs:
           cd docker
           yq -i '.services.supavisor.environment.RLIMIT_NOFILE=1024' docker-compose.yml
           docker compose up -d --quiet-pull --wait
-
-      - name: Setup db
-        run: |
-          set -e
-          # https://github.com/supabase/supabase/issues/29892#issuecomment-2419319879
-          PGPASSWORD="$POSTGRES_PASSWORD" \
-            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
 
       # when using nginx proxy, the image first generates http certs and then start nginx
       # and it takes some time, to generate the certs.
@@ -129,13 +119,6 @@ jobs:
           sudo rm -r volumes/db/data volumes/storage
           # https://github.com/docker/compose/issues/10596#issuecomment-2864307501
           docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-
-      - name: Setup db
-        run: |
-          set -e
-
-          PGPASSWORD="$POSTGRES_PASSWORD" \
-            psql -h localhost -d postgres -U postgres."$POOLER_TENANT_ID" -f ./test/todos.sql
 
       - name: Run tests
         run: |
