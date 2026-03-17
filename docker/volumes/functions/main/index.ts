@@ -1,5 +1,3 @@
-
-
 import * as jose from 'https://deno.land/x/jose@v4.14.4/index.ts'
 
 console.log('main function started')
@@ -168,4 +166,3 @@ Deno.serve(async (req: Request) => {
     })
   }
 })
-

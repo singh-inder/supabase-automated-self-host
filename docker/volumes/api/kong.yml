@@ -38,8 +38,8 @@ basicauth_credentials:
 services:
   ## Open Auth routes
   - name: auth-v1-open
+    _comment: 'Auth: /auth/v1/verify* -> http://auth:9999/verify*'
     url: http://auth:9999/verify
-     _comment: 'Auth: /auth/v1/verify* -> http://auth:9999/verify*'
     routes:
       - name: auth-v1-open
         strip_path: true
@@ -48,8 +48,8 @@ services:
     plugins:
       - name: cors
   - name: auth-v1-open-callback
-    url: http://auth:9999/callback
     _comment: 'Auth: /auth/v1/callback* -> http://auth:9999/callback*'
+    url: http://auth:9999/callback
     routes:
       - name: auth-v1-open-callback
         strip_path: true
@@ -75,6 +75,8 @@ services:
         strip_path: true
         paths:
           - /auth/v1/.well-known/jwks.json
+    plugins:
+      - name: cors
 
   ## Secure Auth routes
   - name: auth-v1
@@ -126,7 +128,7 @@ services:
               - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"      
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -152,11 +154,11 @@ services:
         config:
           add:
             headers:
-              - Content-Profile:graphql_public
+              - "Content-Profile: graphql_public"
               - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"              
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -195,7 +197,7 @@ services:
             - anon
 
   - name: realtime-v1-rest
-    _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+    _comment: 'Realtime: /realtime/v1/api/* -> http://realtime:4000/api/*'
     url: http://realtime-dev.supabase-realtime:4000/api
     protocol: http
     routes:
@@ -215,7 +217,7 @@ services:
               - "Authorization: $LUA_AUTH_EXPR"
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"      
+              - "Authorization: $LUA_AUTH_EXPR"
       - name: acl
         config:
           hide_groups_header: true
@@ -284,6 +286,7 @@ services:
           - /.well-known/oauth-authorization-server
     plugins:
       - name: cors
+
   ## Analytics routes
   ## Not used - Studio and Vector talk directly to analytics via Docker networking.
   ## If external access is needed, add routes with key-auth matching Logflare's x-api-key auth.
