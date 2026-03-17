@@ -203,29 +203,23 @@ describe.concurrent("supabase test suite", () => {
     );
   });
 
-  test.for(cases)(
-    "Upload via s3 client - signed url - $1",
-    async ([key], { expect }) => {
-      const body = "lorem-ipsum";
-      const id = `${crypto.randomUUID()}.txt`;
-      const command = new PutObjectCommand({
-        Bucket: bucketName,
-        Key: id,
-        ContentType: "text/plain"
-      });
-      const signedUrl = await getSignedUrl(getS3Client(), command, {
-        expiresIn: 5 * 60
-      });
-      await wretch(signedUrl)
-        .headers({ "Content-Type": "text/plain" })
-        .put(body)
-        .res();
-      const supabase = createSupabaseClient(key);
-      await supabase.auth.signInWithPassword(userCredentials);
-      const { data } = await supabase.storage.from(bucketName).download(id);
-      expect(await data?.text()).toEqual(body);
-    }
-  );
+  test("Upload via s3 client - signed url - $1", async ({ expect }) => {
+    const body = "lorem-ipsum";
+    const id = `${crypto.randomUUID()}.txt`;
+    const command = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: id,
+      ContentType: "text/plain"
+    });
+    const signedUrl = await getSignedUrl(getS3Client(), command, {
+      expiresIn: 5 * 60
+    });
+    await wretch(signedUrl).headers({ "Content-Type": "text/plain" }).put(body).res();
+    const supabase = createSupabaseClient(ANON_KEY);
+    await supabase.auth.signInWithPassword(userCredentials);
+    const { data } = await supabase.storage.from(bucketName).download(id);
+    expect(await data?.text()).toEqual(body);
+  });
 
   test.for([[SERVICE_ROLE_KEY, "service_role_key"]])(
     "Realtime db changes - $1",
