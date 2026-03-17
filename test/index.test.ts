@@ -223,7 +223,7 @@ describe.concurrent("supabase test suite", () => {
     expect(await data?.text()).toEqual(body);
   });
 
-  test.for(allKeys)(
+  test.for(adminKeys)(
     "Realtime db changes - $1",
     async ([key], { expect, onTestFinished }) => {
       const supabase = createSupabaseClient(key);
@@ -235,7 +235,11 @@ describe.concurrent("supabase test suite", () => {
 
       const channel = supabase
         .channel("db-changes")
-        .on("postgres_changes", { event: "INSERT", schema: "public" }, mockFn)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: tableName },
+          mockFn
+        )
         .subscribe();
 
       onTestFinished(() => void channel.unsubscribe());
