@@ -47,10 +47,7 @@ if (!jwtSecret) {
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 
-const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", {
-  namedCurve: "P-256"
-});
-
+const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", { namedCurve: "P-256" });
 const jwkPrivate = privateKey.export({ format: "jwk" });
 const jwkPublic = publicKey.export({ format: "jwk" });
 const kid = crypto.randomUUID();
