@@ -169,7 +169,7 @@ describe.concurrent("supabase test suite", () => {
     const buf = await (
       await wretch().get(createSignedUrl.data?.signedUrl).blob()
     ).arrayBuffer();
-    expect(hash("sha256", testImg)).toEqual(hash("sha256", Buffer.from(buf)));
+    expect(hash("sha256", testImg)).toBe(hash("sha256", Buffer.from(buf)));
 
     const createUploadUrl = await supabase.storage
       .from(bucketName)
@@ -224,7 +224,7 @@ describe.concurrent("supabase test suite", () => {
     const supabase = createSupabaseClient(ANON_KEY);
     await supabase.auth.signInWithPassword(userCredentials);
     const { data } = await supabase.storage.from(bucketName).download(id);
-    expect(await data?.text()).toEqual(body);
+    expect(await data?.text()).toBe(body);
   });
 
   test.for(adminKeys)(
@@ -258,13 +258,10 @@ describe.concurrent("supabase test suite", () => {
   );
 
   test.for(allKeys)("Test functions - $1", async ([key], { expect }) => {
-    const supabase = createSupabaseClient(ANON_KEY);
-
-    const { error, data } = await supabase.functions.invoke("hello", {
+    const supabase = createSupabaseClient(key);
+    const { data } = await supabase.functions.invoke("hello", {
       method: "GET"
     });
-
-    expect(error).toBeNull();
     expect(data).toBe("Hello from Edge Functions!");
   });
 });
