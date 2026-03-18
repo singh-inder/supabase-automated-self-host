@@ -373,10 +373,10 @@ service_role_token=$(gen_token "service_role")
 
 sed -e "3d" \
     -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
-    -e "s|JWT_SECRET.*|JWT_SECRET=$jwt_secret|" \
-    -e "s|ANON_KEY.*|ANON_KEY=$anon_token|" \
-    -e "s|SERVICE_ROLE_KEY.*|SERVICE_ROLE_KEY=$service_role_token|" \
-    -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=not_being_used|" \
+    -e "s|JWT_SECRET=.*|JWT_SECRET=$jwt_secret|" \
+    -e "s|ANON_KEY=.*|ANON_KEY=$anon_token|" \
+    -e "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$service_role_token|" \
+    -e "s|DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=not_being_used|" \
     -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
     -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
     -e "s|PG_META_CRYPTO_KEY.*|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \

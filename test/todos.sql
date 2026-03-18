@@ -6,13 +6,13 @@ create table {{tableName}} (
   inserted_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 alter table {{tableName}} enable row level security;
-create policy "Individuals can create {{tableName}}." on {{tableName}} for
+create policy "Individuals can create {{tableName}}" on {{tableName}} for
     insert with check (auth.uid() = user_id);
-create policy "Individuals can view their own {{tableName}}. " on {{tableName}} for
+create policy "Individuals can view their own {{tableName}}" on {{tableName}} for
     select using ((select auth.uid()) = user_id);
-create policy "Individuals can update their own {{tableName}}." on {{tableName}} for
+create policy "Individuals can update their own {{tableName}}" on {{tableName}} for
     update using ((select auth.uid()) = user_id);
-create policy "Individuals can delete their own {{tableName}}." on {{tableName}} for
+create policy "Individuals can delete their own {{tableName}}" on {{tableName}} for
     delete using ((select auth.uid()) = user_id);
 
 
@@ -30,7 +30,7 @@ ALTER publication supabase_realtime ADD TABLE {{tableName}};
 
 INSERT INTO storage.buckets(id,name) VALUES ('{{bucketName}}','{{bucketName}}');
 
-CREATE POLICY "Only allow access to authenticated users"
+CREATE POLICY "allow access to authenticated users {{bucketName}}"
 ON storage.objects
 FOR ALL
 TO authenticated

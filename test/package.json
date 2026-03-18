@@ -15,6 +15,7 @@
     "wretch": "^3.0.7"
   },
   "devDependencies": {
+    "@types/mustache": "^4.2.6",
     "@types/pg": "^8.18.0"
   }
 }

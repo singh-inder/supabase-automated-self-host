@@ -12,6 +12,7 @@ import { test, describe, beforeAll, vi } from "vitest";
 import { S3Client, ListBucketsCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Client } from "pg";
+import Mustache from "mustache";
 
 const genRandomChars = (length = 10) => randomBytes(length).toString("hex");
 
@@ -48,7 +49,7 @@ beforeAll(async () => {
   const sql = fs.readFileSync(path.resolve(import.meta.dirname, "./todos.sql"), {
     encoding: "utf-8"
   });
-  await db.query(sql);
+  await db.query(Mustache.render(sql, { tableName, bucketName }));
   await db.end();
 
   const { error } = await createVerifiedUser(
