@@ -1,4 +1,4 @@
-import { randomUUID, hash } from "node:crypto";
+import { hash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -13,8 +13,10 @@ import { S3Client, ListBucketsCommand, PutObjectCommand } from "@aws-sdk/client-
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Client } from "pg";
 
+const genRandomChars = (length = 10) => randomBytes(length).toString("hex");
+
 const getRandomCredentials = () => ({
-  email: `j-${randomUUID()}@mail.com`,
+  email: `j-${genRandomChars()}@mail.com`,
   password: "password123456"
 });
 
@@ -22,6 +24,9 @@ const userCredentials = getRandomCredentials();
 const testImg = fs.readFileSync(
   path.resolve(import.meta.dirname, "testdata/sample.webp")
 );
+
+const tableName = "todos_" + genRandomChars(),
+  bucketName = "test_bucket_" + genRandomChars();
 
 beforeAll(async () => {
   const PG_USER = "postgres";
@@ -52,9 +57,6 @@ beforeAll(async () => {
   );
   if (error) throw error;
 });
-
-const tableName = "todos",
-  bucketName = "test-bucket";
 
 const createSupabaseClient = (key: string) => {
   return createClient(process.env.SUPABASE_PUBLIC_URL!, key, {
@@ -158,7 +160,7 @@ describe.concurrent("supabase test suite", () => {
     const authRes = await createVerifiedUser(supabase, getRandomCredentials());
     expect(authRes.error).toBeNull();
 
-    const filePath = `${crypto.randomUUID()}.webp`;
+    const filePath = `${genRandomChars()}.webp`;
     // buckets are defined in todos.sql
 
     const upload = await supabase.storage.from(bucketName).upload(filePath, testImg);
@@ -178,7 +180,7 @@ describe.concurrent("supabase test suite", () => {
 
     const createUploadUrl = await supabase.storage
       .from(bucketName)
-      .createSignedUploadUrl(`${crypto.randomUUID()}.webp`);
+      .createSignedUploadUrl(`${genRandomChars()}.webp`);
     expect(createUploadUrl.error).toBeNull();
 
     const res = await supabase.storage
@@ -208,7 +210,7 @@ describe.concurrent("supabase test suite", () => {
     await getS3Client().send(
       new PutObjectCommand({
         Bucket: bucketName,
-        Key: `${crypto.randomUUID()}.webp`,
+        Key: `${genRandomChars()}.webp`,
         Body: testImg,
         ContentType: "image/webp"
       })
@@ -217,7 +219,7 @@ describe.concurrent("supabase test suite", () => {
 
   test("Upload via s3 client - signed url", async ({ expect }) => {
     const body = "lorem-ipsum";
-    const id = `${crypto.randomUUID()}.txt`;
+    const id = `${genRandomChars()}.txt`;
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: id,
