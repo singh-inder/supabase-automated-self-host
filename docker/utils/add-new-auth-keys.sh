@@ -33,7 +33,7 @@ update_env=false
 if [ "$1" = "--update-env" ]; then
   update_env=true
   tty=""
-elif [ ! -t 0 ] || [ ! -t 1 ]; then
+elif [ ! -t 0 ]; then
   tty=""
 fi
 
