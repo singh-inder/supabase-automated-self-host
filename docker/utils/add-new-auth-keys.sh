@@ -39,6 +39,7 @@ fi
 
 docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
   cat <<-'EOF'
+console.log("\n------------------------------------------\n")
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("Error: JWT_SECRET not found in .env");
