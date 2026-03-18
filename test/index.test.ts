@@ -89,14 +89,17 @@ const createNote = async (supabase: SupabaseClient, userId: string) => {
 };
 
 describe.concurrent("supabase test suite", () => {
-  const { SERVICE_ROLE_KEY, ANON_KEY } = cleanEnv(process.env, {
-    SUPABASE_PUBLIC_URL: str(),
-    SERVICE_ROLE_KEY: str(),
-    ANON_KEY: str(),
-    REGION: str(),
-    S3_PROTOCOL_ACCESS_KEY_ID: str(),
-    S3_PROTOCOL_ACCESS_KEY_SECRET: str()
-  });
+  const { SERVICE_ROLE_KEY, ANON_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY } =
+    cleanEnv(process.env, {
+      SUPABASE_PUBLIC_URL: str(),
+      SERVICE_ROLE_KEY: str(),
+      ANON_KEY: str(),
+      REGION: str(),
+      S3_PROTOCOL_ACCESS_KEY_ID: str(),
+      S3_PROTOCOL_ACCESS_KEY_SECRET: str(),
+      SUPABASE_PUBLISHABLE_KEY: str(),
+      SUPABASE_SECRET_KEY: str()
+    });
 
   const getS3Client = () => {
     return new S3Client({
@@ -112,10 +115,12 @@ describe.concurrent("supabase test suite", () => {
 
   const allKeys = [
     [ANON_KEY, "anon_key"],
-    [SERVICE_ROLE_KEY, "service_role_key"]
+    [SERVICE_ROLE_KEY, "service_role_key"],
+    [SUPABASE_PUBLISHABLE_KEY, "publishable_key"],
+    [SUPABASE_SECRET_KEY, "secret_key"]
   ];
 
-  const adminKeys = [[SERVICE_ROLE_KEY, "service_role_key"]];
+  const adminKeys = [allKeys[1], allKeys[3]];
 
   test.for(allKeys)(
     "CRUD operations with verified user - $1",
@@ -181,7 +186,8 @@ describe.concurrent("supabase test suite", () => {
       .uploadToSignedUrl(
         createUploadUrl.data!.path,
         createUploadUrl.data!.token,
-        testImg
+        testImg,
+        { contentType: "image/webp" }
       );
 
     expect(res.error).toBeNull();
