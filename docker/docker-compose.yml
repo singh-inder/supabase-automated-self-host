@@ -108,7 +108,7 @@ services:
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
       KONG_PORT_MAPS: "443:8000,443:8443"
-    entrypoint: /home/kong/kong-entrypoint.sh
+    entrypoint: ["/bin/bash", "/home/kong/kong-entrypoint.sh"]
 
   auth:
     container_name: supabase-auth
