@@ -117,7 +117,8 @@ async def main():
         )
 
         if not os.path.isfile(local_file_path):
-            extra_files.append(remote_file_path)
+            relative = os.path.relpath(remote_file_path, out)
+            extra_files.append(relative)
             continue
 
         if os.path.basename(local_file_path) == "docker-compose.s3.yml":
