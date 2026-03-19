@@ -301,7 +301,7 @@ if [[ "$with_authelia" == true ]]; then
     setup_redis=""
 
     if [[ "$CI" == true ]]; then
-        email="johndoe@gmail.com"
+        email="indersingh.dev@outlook.com"
         display_name="Inder Singh"
         if [[ "$WITH_REDIS" == true ]]; then setup_redis=true; fi
     fi
@@ -372,22 +372,22 @@ anon_token=$(gen_token "anon")
 service_role_token=$(gen_token "service_role")
 
 sed -e "3d" \
-    -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
-    -e "s|JWT_SECRET.*|JWT_SECRET=$jwt_secret|" \
-    -e "s|ANON_KEY.*|ANON_KEY=$anon_token|" \
-    -e "s|SERVICE_ROLE_KEY.*|SERVICE_ROLE_KEY=$service_role_token|" \
-    -e "s|DASHBOARD_PASSWORD.*|DASHBOARD_PASSWORD=not_being_used|" \
-    -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
-    -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
-    -e "s|PG_META_CRYPTO_KEY.*|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
-    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain|" \
-    -e "s|SUPABASE_PUBLIC_URL.*|SUPABASE_PUBLIC_URL=$domain|" \
-    -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
-    -e "s|S3_PROTOCOL_ACCESS_KEY_ID.*|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
-    -e "s|S3_PROTOCOL_ACCESS_KEY_SECRET.*|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
-    -e "s|MINIO_ROOT_PASSWORD.*|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
-    -e "s|LOGFLARE_PUBLIC_ACCESS_TOKEN.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
-    -e "s|LOGFLARE_PRIVATE_ACCESS_TOKEN.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
+    -e "s|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=$(gen_hex 16)|" \
+    -e "s|^JWT_SECRET=.*$|JWT_SECRET=$jwt_secret|" \
+    -e "s|^ANON_KEY=.*$|ANON_KEY=$anon_token|" \
+    -e "s|^SERVICE_ROLE_KEY=.*$|SERVICE_ROLE_KEY=$service_role_token|" \
+    -e "s|^DASHBOARD_PASSWORD=.*$|DASHBOARD_PASSWORD=not_being_used|" \
+    -e "s|^SECRET_KEY_BASE=.*$|SECRET_KEY_BASE=$(gen_hex 32)|" \
+    -e "s|^VAULT_ENC_KEY=.*$|VAULT_ENC_KEY=$(gen_hex 16)|" \
+    -e "s|^PG_META_CRYPTO_KEY=.*$|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
+    -e "s|^API_EXTERNAL_URL=.*$|API_EXTERNAL_URL=$domain|" \
+    -e "s|^SUPABASE_PUBLIC_URL=.*$|SUPABASE_PUBLIC_URL=$domain|" \
+    -e "s|^ENABLE_EMAIL_AUTOCONFIRM=.*$|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
+    -e "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*$|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
+    -e "s|^S3_PROTOCOL_ACCESS_KEY_SECRET=.*$|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
+    -e "s|^MINIO_ROOT_PASSWORD=.*$|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
+    -e "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*$|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
+    -e "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*$|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
 
 update_yaml_file() {
     # https://github.com/mikefarah/yq/issues/465#issuecomment-2265381565
@@ -568,11 +568,9 @@ if [[ "$proxy" == "caddy" ]]; then
 
     # https://stackoverflow.com/a/3953712/18954618
     echo "
-    import $caddySnippetsPath/cors.conf
-
     {\$DOMAIN} {
         $([[ "$CI" == true ]] && echo "tls internal")
-        @supa_api path /rest/v1/* /auth/v1/* /realtime/v1/* /functions/v1/* /mcp /api/mcp
+        @supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp /api/mcp
 
         $([[ "$with_authelia" == true ]] && echo "@authelia path /authenticate /authenticate/*
         handle @authelia {
@@ -583,13 +581,6 @@ if [[ "$proxy" == "caddy" ]]; then
         handle @supa_api {
 		    reverse_proxy kong:8000
 	    }
-
-        handle_path /storage/v1/* {
-            import cors *
-            reverse_proxy storage:5000 {
-                header_up X-Forwarded-Prefix /{http.request.orig_uri.path.0}/{http.request.orig_uri.path.1}
-            }
-        }
 
        	handle {
             $([[ "$with_authelia" == false ]] && echo "basic_auth {
@@ -636,7 +627,12 @@ server {
     
         ssl_dhparam /etc/letsencrypt/dhparams/dhparam.pem;
 
+        location /graphql {
+            proxy_pass http://kong_upstream;
+        }
+
         location /realtime {
+            include $nginxSnippetsPath/common_proxy_headers.conf;
             proxy_pass http://kong_upstream;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \"upgrade\";
@@ -644,11 +640,12 @@ server {
         }
 
         location /storage/v1/ {
-            include $nginxSnippetsPath/cors.conf;
             include $nginxSnippetsPath/common_proxy_headers.conf;
-            proxy_set_header X-Forwarded-Prefix /storage/v1;
+            proxy_buffering off;
+            proxy_request_buffering off;
+            chunked_transfer_encoding off;
             client_max_body_size 0;
-            proxy_pass http://storage:5000/;
+            proxy_pass http://kong_upstream;
         }
 
         location /rest {

@@ -40,7 +40,8 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: execute setup script
-        # after checkout, pwd is the root of the repo thats why cd ../
+        # after checkout, pwd is the root of the repo /home/runner/work/<repository>/<repository>,
+        # setup script cd into supabase-automated-self-host/docker, thats why cd ../
         # When executing script with sudo, by default sudo doesn't pass env vars to script. -E flag solves that
         run: |
           set -ex
@@ -55,6 +56,17 @@ jobs:
           [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
 
           WITH_REDIS="$with_authelia_and_redis" sudo -E ./setup.sh "${params[@]}"
+
+      - name: generate new keys
+        run: |
+          set -e
+          cd docker
+          sh utils/add-new-auth-keys.sh --update-env > /dev/null
+          yq -i '
+          .services.auth.environment.GOTRUE_JWT_KEYS="${JWT_KEYS:-[]}" |
+          .services.storage.environment.JWT_JWKS="${JWT_JWKS:-{\"keys\":[]}}" |
+          .services.realtime.environment.API_JWT_JWKS="${JWT_JWKS:-{\"keys\":[]}}"
+          ' docker-compose.yml
 
       - uses: actions/setup-node@v6
         with:

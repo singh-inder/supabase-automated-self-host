@@ -6,8 +6,8 @@ set -euo pipefail
 new_passwd="$(openssl rand -hex 16)"
 
 if [ ! -w ".env" ]; then
-    echo ".env file must exist and be writable by the current user"
-    exit 1
+  echo ".env file must exist and be writable by the current user"
+  exit 1
 fi
 
 docker compose exec -T db psql -v ON_ERROR_STOP=1 -U supabase_admin -d _supabase <<EOF
@@ -50,5 +50,5 @@ END
 \$\$;
 EOF
 
-sed -i.bak "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$new_passwd|" .env
+sed -i.bak "s|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=$new_passwd|" .env
 docker compose up -d --force-recreate

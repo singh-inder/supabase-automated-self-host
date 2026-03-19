@@ -10,6 +10,10 @@ All set up with just **ONE bash script!**
 
 👉 If you find this project helpful, please consider leaving a ⭐ to show your support. You can also support my work by [Buying me a coffee](https://buymeacoffee.com/_inder1). Thankyou!
 
+### Updates
+
+- Publishable/secret API keys & asymmetric JWTs are now supported. [Learn more](https://github.com/singh-inder/supabase-automated-self-host/discussions/132)
+
 ## Prerequisites
 
 - **A Linux Machine with docker installed**: This can be a server or any personal computer running Linux with at least 4 GB RAM and 25 GB Disk space. **The script has been tested only on Linux/WSL.**
@@ -61,7 +65,6 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
    ```
 
    During script execution, you'll be prompted to enter some details:
-
    - **Enter your domain:** Enter the domain name where you want to access the supabase dashboard or make api calls. Make sure to specify the `http` or `https` protocol.
      For example: `https://supabase.example.com`
 
@@ -72,13 +75,11 @@ If you prefer a visual guide, check out this video where I deploy a self hosted 
    - **Enter password:** Enter your password.
 
    - **Do you want to send confirmation emails to register users? `[y/n]`:**
-
      - If you enter "yes", You'll need to set up your own SMTP server to handle emails. You can read more about it in [supabase docs](https://supabase.com/docs/guides/self-hosting/docker#configuring-an-email-server) or checkout my [YouTube video](https://www.youtube.com/watch?v=0iE-h_Wq2Js&t=1822s) for a practical walkthrough on setting up emails.
 
      - If you enter "no", users will be able to signup with their email & password without any email verification. Perfect for testing things out.
 
    The following additional prompts have to be answered only if you've enabled `--with-authelia` flag:
-
    - **Enter email:** Used by authelia for setting up 2-factor auth / reset password flow.
 
      ⭐ If you're not going to setup an SMTP server, you can enter any email here. When not using SMTP server, you can easily view codes sent by authelia in `docker/volumes/authelia/notifications.txt`
