@@ -372,22 +372,22 @@ anon_token=$(gen_token "anon")
 service_role_token=$(gen_token "service_role")
 
 sed -e "3d" \
-    -e "s|POSTGRES_PASSWORD.*|POSTGRES_PASSWORD=$(gen_hex 16)|" \
-    -e "s|JWT_SECRET=.*|JWT_SECRET=$jwt_secret|" \
-    -e "s|ANON_KEY=.*|ANON_KEY=$anon_token|" \
-    -e "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$service_role_token|" \
-    -e "s|DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=not_being_used|" \
-    -e "s|SECRET_KEY_BASE.*|SECRET_KEY_BASE=$(gen_hex 32)|" \
-    -e "s|VAULT_ENC_KEY.*|VAULT_ENC_KEY=$(gen_hex 16)|" \
-    -e "s|PG_META_CRYPTO_KEY.*|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
-    -e "s|API_EXTERNAL_URL.*|API_EXTERNAL_URL=$domain|" \
-    -e "s|SUPABASE_PUBLIC_URL.*|SUPABASE_PUBLIC_URL=$domain|" \
-    -e "s|ENABLE_EMAIL_AUTOCONFIRM.*|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
-    -e "s|S3_PROTOCOL_ACCESS_KEY_ID.*|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
-    -e "s|S3_PROTOCOL_ACCESS_KEY_SECRET.*|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
-    -e "s|MINIO_ROOT_PASSWORD.*|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
-    -e "s|LOGFLARE_PUBLIC_ACCESS_TOKEN.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
-    -e "s|LOGFLARE_PRIVATE_ACCESS_TOKEN.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
+    -e "s|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=$(gen_hex 16)|" \
+    -e "s|^JWT_SECRET=.*$|JWT_SECRET=$jwt_secret|" \
+    -e "s|^ANON_KEY=.*$|ANON_KEY=$anon_token|" \
+    -e "s|^SERVICE_ROLE_KEY=.*$|SERVICE_ROLE_KEY=$service_role_token|" \
+    -e "s|^DASHBOARD_PASSWORD=.*$|DASHBOARD_PASSWORD=not_being_used|" \
+    -e "s|^SECRET_KEY_BASE=.*$|SECRET_KEY_BASE=$(gen_hex 32)|" \
+    -e "s|^VAULT_ENC_KEY=.*$|VAULT_ENC_KEY=$(gen_hex 16)|" \
+    -e "s|^PG_META_CRYPTO_KEY=.*$|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
+    -e "s|^API_EXTERNAL_URL=.*$|API_EXTERNAL_URL=$domain|" \
+    -e "s|^SUPABASE_PUBLIC_URL=.*$|SUPABASE_PUBLIC_URL=$domain|" \
+    -e "s|^ENABLE_EMAIL_AUTOCONFIRM=.*$|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
+    -e "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*$|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
+    -e "s|^S3_PROTOCOL_ACCESS_KEY_SECRET=.*$|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
+    -e "s|^MINIO_ROOT_PASSWORD=.*$|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
+    -e "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*$|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
+    -e "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*$|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
 
 update_yaml_file() {
     # https://github.com/mikefarah/yq/issues/465#issuecomment-2265381565
