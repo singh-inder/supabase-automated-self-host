@@ -16,12 +16,12 @@ import Mustache from "mustache";
 
 const genRandomChars = (length = 10) => randomBytes(length).toString("hex");
 
-const getRandomCredentials = () => ({
+const getRandomCreds = () => ({
   email: `j-${genRandomChars()}@mail.com`,
   password: "password123456"
 });
 
-const userCredentials = getRandomCredentials();
+const userCredentials = getRandomCreds();
 const testImg = fs.readFileSync(
   path.resolve(import.meta.dirname, "testdata/sample.webp")
 );
@@ -31,54 +31,52 @@ const tableName = "todos_" + genRandomChars(),
 
 beforeAll(async () => {
   const PG_USER = "postgres";
-  const { POSTGRES_PASSWORD, POSTGRES_DB, POOLER_TENANT_ID, POSTGRES_PORT } = cleanEnv(
-    process.env,
-    {
-      SUPABASE_PUBLIC_URL: str(),
-      SERVICE_ROLE_KEY: str(),
-      POSTGRES_PASSWORD: str(),
-      POSTGRES_DB: str(),
-      POOLER_TENANT_ID: str(),
-      POSTGRES_PORT: str()
-    }
-  );
-
-  const db = await new Client(
-    `postgres://${PG_USER}.${POOLER_TENANT_ID}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}`
-  ).connect();
+  const envs = cleanEnv(process.env, {
+    SUPABASE_PUBLIC_URL: str(),
+    SERVICE_ROLE_KEY: str(),
+    POSTGRES_PASSWORD: str(),
+    POSTGRES_DB: str(),
+    POOLER_TENANT_ID: str(),
+    POSTGRES_PORT: str(),
+    SUPABASE_SECRET_KEY: str()
+  });
+  const dbUrl = `postgres://${PG_USER}.${envs.POOLER_TENANT_ID}:${envs.POSTGRES_PASSWORD}@localhost:${envs.POSTGRES_PORT}/${envs.POSTGRES_DB}`;
+  const db = await new Client(dbUrl).connect();
   const sql = fs.readFileSync(path.resolve(import.meta.dirname, "./todos.sql"), {
     encoding: "utf-8"
   });
   await db.query(Mustache.render(sql, { tableName, bucketName }));
   await db.end();
 
-  const { error } = await createVerifiedUser(
-    createSupabaseClient(process.env.SERVICE_ROLE_KEY!),
-    userCredentials
-  );
-  if (error) throw error;
+  const result = await Promise.all([
+    createVerifiedUser(createSupaClient(envs.SERVICE_ROLE_KEY), userCredentials),
+    createVerifiedUser(createSupaClient(envs.SUPABASE_SECRET_KEY), getRandomCreds())
+  ]); // doesn't throw, so Promise.all is good here.
+  result.forEach(({ error }) => {
+    if (error) throw error;
+  });
 });
 
-const createSupabaseClient = (key: string) => {
+const createSupaClient = (key: string) => {
   return createClient(process.env.SUPABASE_PUBLIC_URL!, key, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
 };
 
-type SupabaseClient = ReturnType<typeof createSupabaseClient>;
+type SupaClient = ReturnType<typeof createSupaClient>;
 
 /** needs supabase client created with SERVICE_ROLE_KEY */
 const createVerifiedUser = (
-  supabase: SupabaseClient,
-  creds: ReturnType<typeof getRandomCredentials>
+  client: SupaClient,
+  creds: ReturnType<typeof getRandomCreds>
 ) => {
-  return supabase.auth.admin.createUser({
+  return client.auth.admin.createUser({
     ...creds,
     email_confirm: true
   });
 };
 
-const createNote = async (supabase: SupabaseClient, userId: string) => {
+const createNote = async (supabase: SupaClient, userId: string) => {
   const res = await supabase
     .from(tableName)
     .insert({
@@ -128,7 +126,7 @@ describe.concurrent("supabase test suite", () => {
   test.for(allKeys)(
     "CRUD operations with verified user - $1",
     async ([key], { expect }) => {
-      const supabase = createSupabaseClient(key);
+      const supabase = createSupaClient(key);
       const authRes = await supabase.auth.signInWithPassword(userCredentials);
 
       expect(authRes.error).toBeNull();
@@ -156,9 +154,9 @@ describe.concurrent("supabase test suite", () => {
     }
   );
 
-  test.for(adminKeys)("Storage - $1", async ([key], { expect }) => {
-    const supabase = createSupabaseClient(key);
-    const authRes = await createVerifiedUser(supabase, getRandomCredentials());
+  test.for(allKeys)("Storage - $1", async ([key], { expect }) => {
+    const supabase = createSupaClient(key);
+    const authRes = await supabase.auth.signInWithPassword(userCredentials);
     expect(authRes.error).toBeNull();
 
     const filePath = `${genRandomChars()}.webp`;
@@ -230,7 +228,7 @@ describe.concurrent("supabase test suite", () => {
       expiresIn: 5 * 60
     });
     await wretch(signedUrl).headers({ "Content-Type": "text/plain" }).put(body).res();
-    const supabase = createSupabaseClient(ANON_KEY);
+    const supabase = createSupaClient(ANON_KEY);
     await supabase.auth.signInWithPassword(userCredentials);
     const { data } = await supabase.storage.from(bucketName).download(id);
     expect(await data?.text()).toBe(body);
@@ -240,7 +238,7 @@ describe.concurrent("supabase test suite", () => {
     "Realtime db changes - $1",
     { retry: 5 },
     async ([key], { expect, onTestFinished }) => {
-      const supabase = createSupabaseClient(key);
+      const supabase = createSupaClient(key);
       const authRes = await supabase.auth.signInWithPassword(userCredentials);
       expect(authRes.error).toBeNull();
 
@@ -267,7 +265,7 @@ describe.concurrent("supabase test suite", () => {
   );
 
   test.for(allKeys)("Test functions - $1", async ([key], { expect }) => {
-    const supabase = createSupabaseClient(key);
+    const supabase = createSupaClient(key);
     const { data } = await supabase.functions.invoke("hello", {
       method: "GET"
     });
