@@ -55,10 +55,7 @@ function generateOpaqueKey(prefix) {
 const publishableKey = generateOpaqueKey("sb_publishable_");
 const secretKey = generateOpaqueKey("sb_secret_");
 
-const envs = {
-  SUPABASE_PUBLISHABLE_KEY: publishableKey,
-  SUPABASE_SECRET_KEY: secretKey
-};
+const envs = { SUPABASE_PUBLISHABLE_KEY: publishableKey, SUPABASE_SECRET_KEY: secretKey };
 
 for (const key in envs) {
   if (!Object.hasOwn(envs, key)) continue;
