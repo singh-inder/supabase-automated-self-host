@@ -16,27 +16,27 @@
 set -e
 
 if ! command -v docker >/dev/null 2>&1; then
-    echo "Error: docker is required but not found."
-    exit 1
+  echo "Error: docker is required but not found."
+  exit 1
 fi
 
 if [ ! -f .env ]; then
-    echo "Error: .env file not found. Run setup.sh first."
-    exit 1
+  echo "Error: .env file not found. Run setup.sh first."
+  exit 1
 fi
 
 tty="-it"
 update_env=false
 
 if [ "$1" = "--update-env" ]; then
-    update_env=true
-    tty=""
+  update_env=true
+  tty=""
 elif [ ! -t 0 ]; then
-    tty=""
+  tty=""
 fi
 
 docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
-    cat <<-'EOF'
+  cat <<-'EOF'
 const crypto = require("crypto");
 
 const PROJECT_REF = "supabase-self-hosted";
@@ -85,17 +85,11 @@ if (process.env.UPDATE_ENV_FILE === "true") {
 } else if (process.stdin.isTTY) {
   const { createInterface } = require("readline/promises");
   const readline = createInterface({ input: process.stdin, output: process.stdout });
-  (async () => {
-    try {
-      const answer = await readline.question("Update env file? (y/n): ");
-      if (answer.toLowerCase() !== "y") return;
-      updateFile();
-    } catch (error) {
-      console.error("Error:", error.message);
-    } finally {
-      readline.close();
-    }
-  })();
+  readline
+    .question("Update env file? (y/n): ")
+    .then(reply => (reply.toLowerCase() === "y" ? updateFile() : undefined))
+    .catch(err => console.error("Error:", err.message))
+    .finally(() => readline.close());
 }
 EOF
 )"

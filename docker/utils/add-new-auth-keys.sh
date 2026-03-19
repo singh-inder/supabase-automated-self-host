@@ -151,17 +151,11 @@ if (process.env.UPDATE_ENV_FILE === "true") {
 } else if (process.stdin.isTTY) {
   const { createInterface } = require("readline/promises");
   const readline = createInterface({ input: process.stdin, output: process.stdout });
-  (async () => {
-    try {
-      const answer = await readline.question("Update env file? (y/n): ");
-      if (answer.toLowerCase() !== "y") return;
-      updateFile();
-    } catch (error) {
-      console.error("Error:", error.message);
-    } finally {
-      readline.close();
-    }
-  })();
+  readline
+    .question("Update env file? (y/n): ")
+    .then(reply => (reply.toLowerCase() === "y" ? updateFile() : undefined))
+    .catch(err => console.error("Error:", err.message))
+    .finally(() => readline.close());
 }
 EOF
 )"
