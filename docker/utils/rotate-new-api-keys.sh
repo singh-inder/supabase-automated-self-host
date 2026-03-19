@@ -38,6 +38,7 @@ fi
 docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
   cat <<-'EOF'
 const crypto = require("crypto");
+const fs = require("fs");
 
 const PROJECT_REF = "supabase-self-hosted";
 
