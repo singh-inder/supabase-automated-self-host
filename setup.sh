@@ -380,7 +380,7 @@ sed -e "3d" \
     -e "s|^SECRET_KEY_BASE=.*$|SECRET_KEY_BASE=$(gen_hex 32)|" \
     -e "s|^VAULT_ENC_KEY=.*$|VAULT_ENC_KEY=$(gen_hex 16)|" \
     -e "s|^PG_META_CRYPTO_KEY=.*$|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
-    -e "s|^API_EXTERNAL_URL=.*$|API_EXTERNAL_URL=$domain|" \
+    -e "s|^API_EXTERNAL_URL=.*$|API_EXTERNAL_URL=$domain/auth/v1|" \
     -e "s|^SUPABASE_PUBLIC_URL=.*$|SUPABASE_PUBLIC_URL=$domain|" \
     -e "s|^ENABLE_EMAIL_AUTOCONFIRM=.*$|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
     -e "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*$|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
