@@ -446,7 +446,7 @@ else
     # output multiline string from yq https://mikefarah.gitbook.io/yq/operators/string-operators#string-blocks-bash-and-newlines
 
     proxy_service_yaml="${proxy_service_yaml} |
-                        .services.nginx.image=\"jonasal/nginx-certbot:6.2.0-nginx1.31.0\" |
+                        .services.nginx.image=\"jonasal/nginx-certbot:6.2.0-nginx1.31.3\" |
                         .services.nginx.volumes=[\"$nginx_local_volume:/etc/nginx/user_conf.d\",\"$nginx_local_volume/letsencrypt:/etc/letsencrypt\"] |
                         .services.nginx.environment.NGINX_SERVER_NAME = \"\${NGINX_SERVER_NAME:?error}\" |
                         .services.nginx.environment.CERTBOT_EMAIL=\"your@email.org\" |
