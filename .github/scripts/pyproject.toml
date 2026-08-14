@@ -14,3 +14,4 @@ dependencies = [
 
 [tool.uv]
 required-version = ">=0.7.9"
+exclude-newer = "7d"
