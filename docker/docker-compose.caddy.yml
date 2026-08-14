@@ -17,5 +17,3 @@ services:
       - ./volumes/caddy/Caddyfile:/etc/caddy/Caddyfile
     environment:
       PROXY_DOMAIN: ${PROXY_DOMAIN:?error}
-      PROXY_AUTH_USERNAME: ${PROXY_AUTH_USERNAME}
-      PROXY_AUTH_PASSWORD: ${PROXY_AUTH_PASSWORD}

@@ -18,8 +18,6 @@ services:
       NGINX_PASS_FILE: /etc/nginx/user_conf.d/supabase-self-host-users
       NGINX_SNIPPETS_PATH: /etc/nginx/user_conf.d/snippets
       CERTBOT_EMAIL: your@email.org
-      PROXY_AUTH_USERNAME: ${PROXY_AUTH_USERNAME}
-      PROXY_AUTH_PASSWORD: ${PROXY_AUTH_PASSWORD}
     command:
       - /bin/bash
       - -c

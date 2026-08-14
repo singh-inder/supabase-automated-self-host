@@ -425,16 +425,15 @@ update_env_vars() {
 proxy_service_yaml=""
 if [[ "$with_authelia" == true ]]; then
 	proxy_service_yaml=".services.$proxy.depends_on.authelia.condition=\"service_healthy\""
+else
+	proxy_service_yaml=".services.$proxy.environment.PROXY_AUTH_USERNAME=\"\${PROXY_AUTH_USERNAME:?error}\" |
+	                    .services.$proxy.environment.PROXY_AUTH_PASSWORD=\"\${PROXY_AUTH_PASSWORD:?error}\""
+	update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD=$password"
 fi
 
 if [[ "$proxy" == "nginx" && "$CI" = true ]]; then
 	# https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/advanced_usage.md#local-ca
 	proxy_service_yaml="${proxy_service_yaml:+$proxy_service_yaml | }.services.nginx.environment.USE_LOCAL_CA=1"
-fi
-
-# HANDLE BASIC_AUTH
-if [[ "$with_authelia" == false ]]; then
-	update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD='$password'"
 fi
 
 if [ -n "$proxy_service_yaml" ]; then
@@ -480,8 +479,7 @@ if [[ "$with_authelia" == true ]]; then
 	if [[ "$setup_redis" == true ]]; then
 		authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
 
-		authelia_docker_service_yaml='.services.redis.container_name="redis" |
-                    .services.redis.image="redis:8.2.1" |
+		authelia_docker_service_yaml='.services.redis.image="redis:8.2.1" |
                     .services.redis.expose=[6379] |
                     .services.redis.volumes=["./volumes/redis:/data"] |
                     .services.redis.healthcheck={
