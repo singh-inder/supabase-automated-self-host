@@ -21,6 +21,7 @@ services:
     command:
       - /bin/bash
       - -c
+      # https://www.baeldung.com/linux/nginx-config-environment-variables#4-a-common-pitfall
       - |
         echo "$${PROXY_AUTH_USERNAME}:$${PROXY_AUTH_PASSWORD}" > $${NGINX_PASS_FILE} \
         && cp /etc/nginx/user_conf.d/nginx.conf /etc/nginx/user_conf.d/nginx.tmp \
