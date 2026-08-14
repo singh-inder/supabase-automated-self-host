@@ -4,18 +4,18 @@
   },
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1024.0",
-    "@aws-sdk/s3-request-presigner": "^3.1024.0",
-    "@supabase/supabase-js": "2.51.0",
+    "@aws-sdk/client-s3": "^3.1105.0",
+    "@aws-sdk/s3-request-presigner": "^3.1105.0",
+    "@supabase/supabase-js": "2.112.2",
     "cross-env": "^10.1.0",
-    "envalid": "^8.1.1",
+    "envalid": "^8.2.0",
     "mustache": "4.2.0",
-    "pg": "8.20.0",
-    "vitest": "^4.1.2",
-    "wretch": "^3.0.7"
+    "pg": "8.22.0",
+    "vitest": "^4.1.10",
+    "wretch": "^3.0.9"
   },
   "devDependencies": {
     "@types/mustache": "^4.2.6",
-    "@types/pg": "^8.20.0"
+    "@types/pg": "^8.20.4"
   }
 }
