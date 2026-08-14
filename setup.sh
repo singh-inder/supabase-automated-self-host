@@ -480,17 +480,17 @@ if [[ "$with_authelia" == true ]]; then
 	if [[ "$setup_redis" == true ]]; then
 		authelia_config_file_yaml="${authelia_config_file_yaml}|.session.redis.host=\"redis\" | .session.redis.port=6379"
 
-		authelia_docker_service_yaml=".services.redis.container_name=\"redis\" |
-                    .services.redis.image=\"redis:8.2.1\" |
+		authelia_docker_service_yaml='.services.redis.container_name="redis" |
+                    .services.redis.image="redis:8.2.1" |
                     .services.redis.expose=[6379] |
-                    .services.redis.volumes=[\"./volumes/redis:/data\"] |
+                    .services.redis.volumes=["./volumes/redis:/data"] |
                     .services.redis.healthcheck={
-                    \"test\" : [\"CMD-SHELL\",\"redis-cli ping | grep PONG\"],
-                    \"timeout\" : \"5s\",
-                    \"interval\" : \"1s\",
-                    \"retries\" : 5
+                    "test" : ["CMD-SHELL","redis-cli ping | grep PONG"],
+                    "timeout" : "5s",
+                    "interval" : "1s",
+                    "retries" : 5
                     } |
-                    .services.authelia.depends_on.redis.condition=\"service_healthy\""
+                    .services.authelia.depends_on.redis.condition="service_healthy"'
 
 		update_yaml_file "$authelia_docker_service_yaml" "$authelia_compose_file"
 	fi
