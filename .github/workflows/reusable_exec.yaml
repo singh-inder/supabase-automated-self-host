@@ -129,8 +129,10 @@ jobs:
           set -ex
           cd docker && docker compose down -t0
           sudo rm -r volumes/db/data volumes/storage
+          compose_file_env=$(sed -n 's/^COMPOSE_FILE=//p' .env)
+          sed -i "s|^COMPOSE_FILE.*$|COMPOSE_FILE=${compose_file_env}:docker-compose.s3.yml|" .env
           # https://github.com/docker/compose/issues/10596#issuecomment-2864307501
-          docker compose -f docker-compose.yml -f docker-compose.s3.yml up -d --quiet-pull --wait || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
+          docker compose up -d --quiet-pull --wait || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
 
       - name: Run tests
         run: |
