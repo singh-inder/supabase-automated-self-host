@@ -1,0 +1,29 @@
+services:
+  nginx:
+    container_name: supabase-nginx
+    image: jonasal/nginx-certbot:6.2.0-nginx1.31.3
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    depends_on:
+      kong:
+        condition: service_healthy
+    volumes:
+      - ./volumes/nginx:/etc/nginx/user_conf.d
+      - ./volumes/nginx/letsencrypt:/etc/letsencrypt
+    environment:
+      PROXY_DOMAIN: ${PROXY_DOMAIN:?error}
+      NGINX_PASS_FILE: /etc/nginx/user_conf.d/supabase-self-host-users
+      NGINX_SNIPPETS_PATH: /etc/nginx/user_conf.d/snippets
+      CERTBOT_EMAIL: your@email.org
+      PROXY_AUTH_USERNAME: ${PROXY_AUTH_USERNAME}
+      PROXY_AUTH_PASSWORD: ${PROXY_AUTH_PASSWORD}
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "$${PROXY_AUTH_USERNAME}:$${PROXY_AUTH_PASSWORD}" > $${NGINX_PASS_FILE} \
+        && envsubst '$${PROXY_DOMAIN}' '$${NGINX_SNIPPETS_PATH}' < /etc/nginx/user_conf.d/nginx.template > /etc/nginx/user_conf.d/nginx.conf \
+        && /scripts/start_nginx_certbot.sh
