@@ -566,7 +566,7 @@ echo -e "$env_vars" >>.env
 
 proxy_template_file=""
 if [ "$proxy" = "caddy" ]; then
-	proxy_template_file="./volumes/caddy/caddy.template"
+	proxy_template_file="./volumes/caddy/caddyfile.template"
 else
 	proxy_template_file="./volumes/nginx/nginx.template"
 fi
