@@ -506,27 +506,31 @@ fi
 
 echo -e "$env_vars" >>.env
 
+proxy_file=""
 proxy_template_file=""
 if [ "$proxy" = "caddy" ]; then
+	proxy_file="./volumes/caddy/Caddyfile"
 	proxy_template_file="./volumes/caddy/caddyfile.template"
 else
+	proxy_file="./volumes/nginx/nginx.conf"
 	proxy_template_file="./volumes/nginx/nginx.template"
 fi
 
-uncomment_block() {
+write_proxy_file() {
 	local block_name="$1"
-	local file="$2"
-	sed -i.old "\\|## BLOCK_${block_name}_START ##|,\\|## BLOCK_${block_name}_END ##| s|^\\([[:space:]]*\\)#\\([^#]\\)|\\1\\2|" "$file"
+	local template_file="$2"
+	local new_file="$3"
+	sed "\\|## BLOCK_${block_name}_START ##|,\\|## BLOCK_${block_name}_END ##| s|^\\([[:space:]]*\\)#\\([^#]\\)|\\1\\2|" "$template_file" >"$new_file"
 }
 
 if [ "$with_authelia" = true ]; then
-	uncomment_block "AUTHELIA" "$proxy_template_file"
+	write_proxy_file "AUTHELIA" "$proxy_template_file" "$proxy_file"
 else
-	uncomment_block "BASIC_AUTH" "$proxy_template_file"
+	write_proxy_file "BASIC_AUTH" "$proxy_template_file" "$proxy_file"
 fi
 
 if [[ "$CI" == true && "$proxy" == "caddy" ]]; then
-	uncomment_block "CI" "$proxy_template_file"
+	write_proxy_file "CI" "$proxy_template_file" "$proxy_file"
 fi
 
 unset password confirmPassword
