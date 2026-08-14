@@ -1,8 +1,4 @@
 {$PROXY_DOMAIN} {
-	## BLOCK_CI_START ##
-	# tls internal
-	## BLOCK_CI_END ##
-
 	@supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp /api/mcp
 	handle @supa_api {
 		reverse_proxy kong:8000

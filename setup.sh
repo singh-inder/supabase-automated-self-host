@@ -530,9 +530,7 @@ else
 fi
 
 if [[ "$CI" == true && "$proxy" == "caddy" ]]; then
-	# apply the CI-specific block on top of the existing proxy config.
-	cp "$proxy_file" "$proxy_template_file"
-	write_proxy_file "CI" "$proxy_template_file" "$proxy_file"
+	sed -i '2i tls internal' "$proxy_file"
 fi
 
 unset password confirmPassword
