@@ -10,7 +10,7 @@ server {
     server_name ${PROXY_DOMAIN};
     server_tokens off;
     proxy_http_version 1.1;
-    include $nginxSnippetsPath/common_proxy_headers.conf;
+    include ${NGINX_SNIPPETS_PATH}/common_proxy_headers.conf;
 
     # cert path inside container https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/good_to_know.md#how-the-script-add-domain-names-to-certificate-requests
     ssl_certificate         /etc/letsencrypt/live/${PROXY_DOMAIN}/fullchain.pem;
@@ -24,14 +24,14 @@ server {
 
     location /realtime {
         proxy_pass http://kong_upstream;
-        include $nginxSnippetsPath/common_proxy_headers.conf;
+        include ${NGINX_SNIPPETS_PATH}/common_proxy_headers.conf;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_read_timeout 3600s;
     }
 
     location /storage/v1/ {
-        include $nginxSnippetsPath/common_proxy_headers.conf;
+        include ${NGINX_SNIPPETS_PATH}/common_proxy_headers.conf;
         proxy_buffering off;
         proxy_request_buffering off;
         chunked_transfer_encoding off;
@@ -60,10 +60,10 @@ server {
     }
 
     ## BLOCK_AUTHELIA_START ##
-    # include $nginxSnippetsPath/authelia-location.conf;
+    # include ${NGINX_SNIPPETS_PATH}/authelia-location.conf;
     # location /authenticate {
-    #     include $nginxSnippetsPath/common_proxy_headers.conf;
-    #     include $nginxSnippetsPath/proxy.conf;
+    #     include ${NGINX_SNIPPETS_PATH}/common_proxy_headers.conf;
+    #     include ${NGINX_SNIPPETS_PATH}/proxy.conf;
     #     proxy_pass http://authelia:9091;
     # }
     ## BLOCK_AUTHELIA_END ##
@@ -75,8 +75,8 @@ server {
         ## BLOCK_BASIC_AUTH_END ##
 
         ## BLOCK_AUTHELIA_START ##
-        # include $nginxSnippetsPath/proxy.conf;
-        # include $nginxSnippetsPath/authelia-authrequest.conf;
+        # include ${NGINX_SNIPPETS_PATH}/proxy.conf;
+        # include ${NGINX_SNIPPETS_PATH}/authelia-authrequest.conf;
         ## BLOCK_AUTHELIA_END ##
 
         proxy_pass http://studio:3000;
