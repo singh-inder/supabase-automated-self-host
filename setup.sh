@@ -428,7 +428,7 @@ if [[ "$with_authelia" == true ]]; then
 else
 	proxy_service_yaml=".services.$proxy.environment.PROXY_AUTH_USERNAME=\"\${PROXY_AUTH_USERNAME:?error}\" |
 	                    .services.$proxy.environment.PROXY_AUTH_PASSWORD=\"\${PROXY_AUTH_PASSWORD:?error}\""
-	update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD=$password"
+	update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD='$password'"
 fi
 
 if [[ "$proxy" == "nginx" && "$CI" = true ]]; then
