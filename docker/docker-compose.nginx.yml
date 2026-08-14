@@ -23,5 +23,7 @@ services:
       - -c
       - |
         echo "$${PROXY_AUTH_USERNAME}:$${PROXY_AUTH_PASSWORD}" > $${NGINX_PASS_FILE} \
-        && envsubst '$${PROXY_DOMAIN} $${NGINX_SNIPPETS_PATH} $${NGINX_PASS_FILE}' < /etc/nginx/user_conf.d/nginx.template > /etc/nginx/user_conf.d/nginx.conf \
+        && cp /etc/nginx/user_conf.d/nginx.conf /etc/nginx/user_conf.d/nginx.tmp \
+        && envsubst '$${PROXY_DOMAIN} $${NGINX_SNIPPETS_PATH} $${NGINX_PASS_FILE}' < /etc/nginx/user_conf.d/nginx.tmp > /etc/nginx/user_conf.d/nginx.conf \
+        && rm /etc/nginx/user_conf.d/nginx.tmp \
         && /scripts/start_nginx_certbot.sh
