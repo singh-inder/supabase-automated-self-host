@@ -1,0 +1,36 @@
+{$PROXY_DOMAIN} {
+	## BLOCK_CI_START ##
+	# tls internal
+	## BLOCK_CI_END ##
+
+	@supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp /api/mcp
+	handle @supa_api {
+		reverse_proxy kong:8000
+	}
+
+	## BLOCK_AUTHELIA_START ##
+	# @authelia path /authenticate /authenticate/*
+	# handle @authelia {
+	# 	reverse_proxy authelia:9091
+	# }
+	## BLOCK_AUTHELIA_END ##
+
+	handle {
+		## BLOCK_BASIC_AUTH_START ##
+		# basic_auth {
+		# 	{$PROXY_AUTH_USERNAME} {$PROXY_AUTH_PASSWORD}
+		# }
+		## BLOCK_BASIC_AUTH_END ##
+
+		## BLOCK_AUTHELIA_START ##
+		# forward_auth authelia:9091 {
+		# 	uri /api/authz/forward-auth
+		# 	copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+		# }
+		## BLOCK_AUTHELIA_END ##
+
+		reverse_proxy studio:3000
+	}
+
+	header -server
+}
