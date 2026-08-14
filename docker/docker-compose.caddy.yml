@@ -1,0 +1,21 @@
+services:
+  caddy:
+    container_name: supabase-caddy
+    image: caddy:2.11.4
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+    depends_on:
+      kong:
+        condition: service_healthy
+    volumes:
+      - ./volumes/caddy/caddy_data:/data
+      - ./volumes/caddy/caddy_config:/config
+      - ./volumes/caddy/snippets:/etc/caddy/snippets
+      - ./volumes/caddy/Caddyfile:/etc/caddy/Caddyfile
+    environment:
+      PROXY_DOMAIN: ${PROXY_DOMAIN:?error}
+      PROXY_AUTH_USERNAME: ${PROXY_AUTH_USERNAME}
+      PROXY_AUTH_PASSWORD: ${PROXY_AUTH_PASSWORD}
