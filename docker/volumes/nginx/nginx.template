@@ -1,0 +1,91 @@
+upstream kong_upstream {
+    server kong:8000;
+    keepalive 2;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name ${NGINX_SERVER_NAME};
+    server_tokens off;
+    proxy_http_version 1.1;
+    include $nginxSnippetsPath/common_proxy_headers.conf;
+
+    # cert path inside container https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/good_to_know.md#how-the-script-add-domain-names-to-certificate-requests
+    ssl_certificate         /etc/letsencrypt/live/${NGINX_SERVER_NAME}/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/${NGINX_SERVER_NAME}/privkey.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/${NGINX_SERVER_NAME}/chain.pem;
+    ssl_dhparam             /etc/letsencrypt/dhparams/dhparam.pem;
+
+    location /graphql {
+        proxy_pass http://kong_upstream;
+    }
+
+    location /realtime {
+        proxy_pass http://kong_upstream;
+        include $nginxSnippetsPath/common_proxy_headers.conf;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+    }
+
+    location /storage/v1/ {
+        include $nginxSnippetsPath/common_proxy_headers.conf;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        chunked_transfer_encoding off;
+        client_max_body_size 0;
+        proxy_pass http://kong_upstream;
+    }
+
+    location /rest {
+        proxy_pass http://kong_upstream;
+    }
+
+    location /auth {
+        proxy_pass http://kong_upstream;
+    }
+
+    location /functions {
+        proxy_pass http://kong_upstream;
+    }
+
+    location /mcp {
+        proxy_pass http://kong_upstream;
+    }
+
+    location /api/mcp {
+        proxy_pass http://kong_upstream;
+    }
+
+    ## BLOCK_AUTHELIA_START ##
+    # include $nginxSnippetsPath/authelia-location.conf;
+    # location /authenticate {
+    #     include $nginxSnippetsPath/common_proxy_headers.conf;
+    #     include $nginxSnippetsPath/proxy.conf;
+    #     proxy_pass http://authelia:9091;
+    # }
+    ## BLOCK_AUTHELIA_END ##
+
+    location / {
+        ## BLOCK_BASIC_AUTH_START ##
+        # auth_basic "Admin";
+        # auth_basic_user_file $nginx_pass_file;
+        ## BLOCK_BASIC_AUTH_END ##
+
+        ## BLOCK_AUTHELIA_START ##
+        # include $nginxSnippetsPath/proxy.conf;
+        # include $nginxSnippetsPath/authelia-authrequest.conf;
+        ## BLOCK_AUTHELIA_END ##
+
+        proxy_pass http://studio:3000;
+    }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${NGINX_SERVER_NAME};
+    return 301 https://$server_name$request_uri;
+}
