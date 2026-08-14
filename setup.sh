@@ -530,7 +530,9 @@ else
 fi
 
 if [[ "$CI" == true && "$proxy" == "caddy" ]]; then
-	write_proxy_file "CI" "$proxy_template_file" "$proxy_file"
+	# Apply CI-specific config on top of the already-generated proxy file.
+	# Pass the same file as input/output so previously enabled blocks are preserved.
+	write_proxy_file "CI" "$proxy_file" "$proxy_file"
 fi
 
 unset password confirmPassword
