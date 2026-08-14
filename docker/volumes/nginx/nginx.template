@@ -71,7 +71,7 @@ server {
     location / {
         ## BLOCK_BASIC_AUTH_START ##
         # auth_basic "Admin";
-        # auth_basic_user_file $nginx_pass_file;
+        # auth_basic_user_file ${NGINX_PASS_FILE};
         ## BLOCK_BASIC_AUTH_END ##
 
         ## BLOCK_AUTHELIA_START ##
