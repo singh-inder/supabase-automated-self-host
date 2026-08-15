@@ -431,7 +431,7 @@ else
 	update_env_vars "PROXY_AUTH_USERNAME=$username" "PROXY_AUTH_PASSWORD='$password'"
 fi
 
-if [[ "$proxy" == "nginx" && "$CI" = true ]]; then
+if [[ "$proxy" == "nginx" && "$CI" == true ]]; then
 	# https://github.com/JonasAlfredsson/docker-nginx-certbot/blob/master/docs/advanced_usage.md#local-ca
 	proxy_service_yaml="${proxy_service_yaml} | .services.nginx.environment.USE_LOCAL_CA=1"
 fi
