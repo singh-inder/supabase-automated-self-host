@@ -153,8 +153,8 @@ jobs:
 
       - name: Generate tar
         env:
-          REPO: ${{github.event.repository.name}}
-          ARTIFACT: ${{matrix.type}}
+          REPO: ${{ github.event.repository.name }}
+          ARTIFACT: ${{ matrix.type }}
         run: |
           set -ex
           cd docker
