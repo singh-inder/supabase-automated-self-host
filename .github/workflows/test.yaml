@@ -54,8 +54,8 @@ jobs:
       - name: execute setup script
         env:
           PROXY: ${{ startsWith(matrix.type, 'nginx') && 'nginx' || 'caddy' }}
-          WITH_AUTHELIA: contains(matrix.type, 'authelia')
-          WITH_REDIS: startsWith(matrix.type, 'nginx')
+          WITH_AUTHELIA: ${{ contains(matrix.type, 'authelia') }}
+          WITH_REDIS: ${{ contains(matrix.type, 'redis') }}
         # after checkout, pwd is the root of the repo /home/runner/work/<repository>/<repository>,
         # setup script cd into supabase-automated-self-host/docker, thats why cd ../
         # When executing script with sudo, by default sudo doesn't pass env vars to script. -E flag solves that
@@ -93,7 +93,7 @@ jobs:
           envVars=(SUPABASE_PUBLIC_URL PROXY_AUTH_USERNAME SERVICE_ROLE_KEY)
 
           for var in "${envVars[@]}"; do
-              echo "$var=$(grep -i -m1 $var .env | cut -d '=' -f 2)" >>"$GITHUB_ENV"
+              echo "$var=$(grep -i -m1 "$var" .env | cut -d '=' -f 2)" >>"$GITHUB_ENV"
           done
 
       - name: Update /etc/hosts
