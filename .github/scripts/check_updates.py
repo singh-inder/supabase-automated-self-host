@@ -14,7 +14,9 @@ from github import Github, Repository, ContentFile
 import yaml
 
 
-async def download(c: ContentFile.ContentFile, out: str, session: aiohttp.ClientSession):
+async def download(
+    c: ContentFile.ContentFile, out: str, session: aiohttp.ClientSession
+):
     try:
         async with session.get(c.download_url) as res:
             output_path = os.path.join(out, c.path)
@@ -57,7 +59,9 @@ def check_minio_updates(file_path: str):
         for image in images:
             try:
                 repo, current_tag = image.split(":", maxsplit=1)
-                latest_tag = os.path.basename(Github().get_repo(repo).get_latest_release().html_url)
+                latest_tag = os.path.basename(
+                    Github().get_repo(repo).get_latest_release().html_url
+                )
                 if current_tag != latest_tag:
                     data += f"<h2>{repo}: {latest_tag}</h2><br/>"
             except Exception as err:
@@ -87,18 +91,19 @@ async def main():
 
     async with aiohttp.ClientSession() as session:
         skip = ["readme.md", ".gitignore", "versions.md", "changelog.md"]
-        skip_dirs = ["docker/tests"]
         try:
             async with asyncio.TaskGroup() as tg:
                 for f in repoFiles:
-                    if f.name.lower() in skip or any(f.path.startswith(dir) for dir in skip_dirs):
+                    if f.name.lower() in skip:
                         print(f"skip downloading {f.name}")
                     else:
                         remote_files.append(tg.create_task(download(f, out, session)))
         except* Exception as err:
             raise SystemExit(f"ERROR in download taskgroup: {err.exceptions}")
 
-    remote_files = [os.path.normpath(remote_file.result()) for remote_file in remote_files]
+    remote_files = [
+        os.path.normpath(remote_file.result()) for remote_file in remote_files
+    ]
 
     extra_files: List[str] = []
     html_head, html_body, minio_update = "", "", ""
@@ -154,7 +159,9 @@ async def main():
 
                     html_body += soup.find("body").decode_contents()
             except Exception as err:
-                raise SystemExit(f"Error generating diff for file {remote_file_path}: {err}")
+                raise SystemExit(
+                    f"Error generating diff for file {remote_file_path}: {err}"
+                )
 
     if len(html_body) == 0:
         html_diff = "<html><body><h1>No changes!</h1></body></html>"
@@ -179,7 +186,11 @@ async def main():
     try:
         res = requests.post(
             discord_webhook_url,
-            data={"payload_json": json.dumps({"embeds": [{"title": f"Report {report_date}"}]})},
+            data={
+                "payload_json": json.dumps(
+                    {"embeds": [{"title": f"Report {report_date}"}]}
+                )
+            },
             files={"file": file},
         )
         res.raise_for_status()
