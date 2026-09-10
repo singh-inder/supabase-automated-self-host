@@ -91,7 +91,7 @@ async def main():
         try:
             async with asyncio.TaskGroup() as tg:
                 for f in repoFiles:
-                    if f.name.lower() in skip or any(f.name.startswith(dir) for dir in skip_dirs):
+                    if f.name.lower() in skip or any(f.path.startswith(dir) for dir in skip_dirs):
                         print(f"skip downloading {f.name}")
                     else:
                         remote_files.append(tg.create_task(download(f, out, session)))
