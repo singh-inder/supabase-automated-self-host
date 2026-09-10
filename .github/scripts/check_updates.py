@@ -90,7 +90,7 @@ async def main():
     remote_files = []
 
     async with aiohttp.ClientSession() as session:
-        skip = ["readme.md", ".gitignore", "versions.md", "changelog.md", "tests"]
+        skip = ["readme.md", ".gitignore", "versions.md", "changelog.md", "docker/tests"]
         try:
             async with asyncio.TaskGroup() as tg:
                 for f in repoFiles:
