@@ -84,17 +84,17 @@ services:
       - name: auth-v1-open-sso-acs
         strip_path: true
         paths:
-          - /auth/v1/sso/saml/acs
+           - /auth/v1/sso/saml/acs
     plugins:
       - name: cors
-  
+   
   - name: auth-v1-open-sso-metadata
     url: "http://auth:9999/sso/saml/metadata"
     routes:
       - name: auth-v1-open-sso-metadata
         strip_path: true
         paths:
-          - /auth/v1/sso/saml/metadata
+           - /auth/v1/sso/saml/metadata
     plugins:
       - name: cors
 
@@ -305,7 +305,7 @@ services:
             - anon
 
   ## Storage API endpoint (with Authorization header transformation).
-  ## No key-auth — S3 protocol requests don't carry an apikey header.
+  ## No key-auth - S3 protocol requests don't carry an apikey header.
   ##
   ## The request-transformer translates opaque API keys to asymmetric JWTs
   ## and passes through existing Authorization headers (user JWTs, AWS SigV4).
