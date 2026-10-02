@@ -47,25 +47,6 @@ def get_repo_files(
             continue
         repoFiles.append(c)
 
-
-def check_minio_updates(file_path: str):
-    with open(file_path) as f:
-        services = yaml.safe_load(f).get("services")
-        images: list[str] = [services[s]["image"] for s in services if "minio" in s]
-        data = ""
-
-        for image in images:
-            try:
-                repo, current_tag = image.split(":", maxsplit=1)
-                latest_tag = os.path.basename(Github().get_repo(repo).get_latest_release().html_url)
-                if current_tag != latest_tag:
-                    data += f"<h2>{repo}: {latest_tag}</h2><br/>"
-            except Exception as err:
-                raise SystemExit(f"ERROR in download taskgroup: {err}")
-
-        return data
-
-
 async def main():
     discord_webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
 
@@ -115,9 +96,6 @@ async def main():
             relative = os.path.relpath(remote_file_path, out)
             extra_files.append(relative)
             continue
-
-        if os.path.basename(local_file_path) == "docker-compose.s3.yml":
-            minio_update = check_minio_updates(local_file_path)
 
         with open(remote_file_path, "r") as remote_file:
             try:
