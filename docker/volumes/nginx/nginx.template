@@ -59,6 +59,14 @@ server {
         proxy_pass http://kong_upstream;
     }
 
+    location /sso {
+        proxy_pass http://kong_upstream;
+    }
+
+    location = /.well-known/oauth-authorization-server {
+        proxy_pass http://kong_upstream;
+    }
+
     ## BLOCK_AUTHELIA_START ##
     # include ${NGINX_SNIPPETS_PATH}/authelia-location.conf;
     # location /authenticate {

@@ -1,5 +1,5 @@
 {$PROXY_DOMAIN} {
-	@supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp /api/mcp
+	@supa_api path /rest/v1/* /auth/v1/* /graphql/v1 /realtime/v1/* /storage/v1/* /functions/v1/* /mcp /api/mcp /sso/* /.well-known/oauth-authorization-server
 	handle @supa_api {
 		reverse_proxy kong:8000
 	}
