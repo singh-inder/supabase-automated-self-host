@@ -39,7 +39,7 @@ fi
 
 docker run --rm -e UPDATE_ENV_FILE="$update_env" -v ./:/app --workdir=/app $tty node:24-alpine node --env-file=.env -e "$(
   cat <<-'EOF'
-console.log("\n------------------------------------------\n")
+console.log("\n------------------------------------------\n");
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("Error: JWT_SECRET not found in .env");
@@ -128,11 +128,12 @@ for (const key in envs) {
   console.log(`${key}=${envs[key]}`);
 }
 
-function updateFile() {
-  console.log("Updating env file");
-  fs.cpSync(".env", ".env.old");
+function updateEnvFile() {
+  const file = ".env";
+  console.log(`Updating ${file} file`);
+  fs.cpSync(file, `${file}.old`);
 
-  let content = fs.readFileSync(".env", { encoding: "utf-8" });
+  let content = fs.readFileSync(file, { encoding: "utf-8" });
   for (const key in envs) {
     if (!Object.hasOwn(envs, key)) continue;
     const regex = new RegExp(`^${key}=.*$`, "m");
@@ -143,17 +144,44 @@ function updateFile() {
       content += `\n${pair}`;
     }
   }
-  fs.writeFileSync(".env", content, { encoding: "utf-8" });
-};
+  fs.writeFileSync(file, content, { encoding: "utf-8" });
+}
 
+function uncommentKeysInComposeFile() {
+  try {
+    const file = "docker-compose.yml";
+    console.log(`Updating ${file}`);
+    fs.cpSync(file, `${file}.old`);
+    const keys = ["GOTRUE_JWT_KEYS", "API_JWT_JWKS", "JWT_JWKS", "SUPABASE_JWKS"];
+    const regex = new RegExp(`^([ ]*)#([ ]*)(${keys.join("|")}):`, "gm");
+    const content = fs.readFileSync(file, { encoding: "utf-8" });
+    const updated = content.replace(regex, "$1$3:");
+    const success = keys.every(key => new RegExp(`^[ ]*${key}:`, "m").test(updated));
+    if (!success) throw new Error("One or more auth configuration keys could not be uncommented");
+    fs.writeFileSync(file, updated, { encoding: "utf-8" });
+  } catch (error) {
+    console.log(
+      "Warning: could not edit docker-compose.yml. Uncomment auth configuration manually -",
+      error.message
+    );
+  }
+}
+
+console.log();
 if (process.env.UPDATE_ENV_FILE === "true") {
-  updateFile();
+  updateEnvFile();
+  uncommentKeysInComposeFile();
 } else if (process.stdin.isTTY) {
   const { createInterface } = require("readline/promises");
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   readline
-    .question("Update env file? (y/n): ")
-    .then(reply => (reply.toLowerCase() === "y" ? updateFile() : undefined))
+    .question("Update env and compose file? (y/n): ")
+    .then(reply => {
+      if (reply.toLowerCase() === "y") {
+        updateEnvFile();
+        uncommentKeysInComposeFile();
+      }
+    })
     .catch(err => console.error("Error:", err.message))
     .finally(() => readline.close());
 }
