@@ -22,6 +22,11 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+if [ ! -f docker-compose.yml ]; then
+  echo "Error: docker-compose.yml not found"
+  exit 1
+fi
+
 if [ ! -f .env ]; then
   echo "Error: .env file not found. Run setup.sh first."
   exit 1
