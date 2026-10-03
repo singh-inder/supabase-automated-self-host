@@ -39,6 +39,7 @@ jobs:
     needs: pre_job
     if: needs.pre_job.outputs.should_skip != 'true'
     strategy:
+      fail-fast: false
       matrix:
         config:
           - caddy_basic_auth
@@ -74,12 +75,6 @@ jobs:
           set -e
           cd docker
           sh utils/add-new-auth-keys.sh --update-env > /dev/null
-          yq -i '
-          .services.auth.environment.GOTRUE_JWT_KEYS="${JWT_KEYS:?error}" |
-          .services.storage.environment.JWT_JWKS="${JWT_JWKS:?error}" |
-          .services.realtime.environment.API_JWT_JWKS="${JWT_JWKS:?error}" |
-          .services.functions.environment.SUPABASE_JWKS="${JWT_JWKS:?error}"
-          ' docker-compose.yml
 
       - uses: actions/setup-node@v6
         with:
