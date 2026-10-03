@@ -374,7 +374,7 @@ fi
 
 info_log "Generating asymmetric key pair and opaque API keys"
 if ! sh utils/add-new-auth-keys.sh --update-env; then
-	error_exit "Failed to generate Supabase keys."
+	error_exit "Failed to generate asymmetric Supabase keys."
 fi
 
 update_yaml_file() {
