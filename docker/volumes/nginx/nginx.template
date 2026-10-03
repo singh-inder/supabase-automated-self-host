@@ -53,6 +53,9 @@ server {
 
     location /mcp {
         proxy_pass http://kong_upstream;
+
+        # Outlast the runtime's 150s request idle timeout, matching the API gateway.
+        proxy_read_timeout 160s;
     }
 
     location /api/mcp {
