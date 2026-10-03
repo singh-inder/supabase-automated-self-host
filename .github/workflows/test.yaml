@@ -70,12 +70,6 @@ jobs:
           [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
           WITH_REDIS="$WITH_REDIS" sudo -E ./setup.sh "${params[@]}"
 
-      - name: generate new keys
-        run: |
-          set -e
-          cd docker
-          sh utils/add-new-auth-keys.sh --update-env > /dev/null
-
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
