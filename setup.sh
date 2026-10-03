@@ -343,34 +343,6 @@ if [[ "$proxy" == "nginx" && "$with_authelia" == false ]]; then bcryptRounds=6; 
 # https://www.baeldung.com/linux/bcrypt-hash#using-htpasswd
 password=$(htpasswd -bnBC "$bcryptRounds" "" "$password" | cut -d : -f 2)
 
-gen_hex() { openssl rand -hex "$1"; }
-
-jwt_secret="$(gen_hex 20)"
-
-base64_url_encode() { openssl enc -base64 -A | tr '+/' '-_' | tr -d '='; }
-
-header='{"typ":"JWT","alg":"HS256"}'
-header_base64=$(printf %s "$header" | base64_url_encode)
-# iat and exp for both tokens has to be same thats why initializing here
-iat=$(date +%s)
-exp=$(("$iat" + 5 * 3600 * 24 * 365)) # 5 years expiry
-
-gen_token() {
-	local payload
-	payload=$(jq -nc ".iat=($iat | tonumber) | .exp=($exp | tonumber) | .iss=\"supabase\" | .role=\"$1\"")
-	local payload_base64
-	payload_base64=$(printf %s "$payload" | base64_url_encode)
-
-	local signed_content="${header_base64}.${payload_base64}"
-	local signature
-	signature=$(printf %s "$signed_content" | openssl dgst -binary -sha256 -hmac "$jwt_secret" | base64_url_encode)
-
-	printf '%s' "${signed_content}.${signature}"
-}
-
-anon_token=$(gen_token "anon")
-service_role_token=$(gen_token "service_role")
-
 compose_file="docker-compose.yml"
 caddy_compose_file="docker-compose.caddy.yml"
 nginx_compose_file="docker-compose.nginx.yml"
@@ -389,22 +361,19 @@ if [ "$with_authelia" = true ]; then
 fi
 
 sed -e "s|^COMPOSE_FILE=.*$|COMPOSE_FILE=$compose_file_env|" \
-	-e "s|^POSTGRES_PASSWORD=.*$|POSTGRES_PASSWORD=$(gen_hex 16)|" \
-	-e "s|^JWT_SECRET=.*$|JWT_SECRET=$jwt_secret|" \
-	-e "s|^ANON_KEY=.*$|ANON_KEY=$anon_token|" \
-	-e "s|^SERVICE_ROLE_KEY=.*$|SERVICE_ROLE_KEY=$service_role_token|" \
-	-e "s|^DASHBOARD_PASSWORD=.*$|DASHBOARD_PASSWORD=not_being_used|" \
-	-e "s|^SECRET_KEY_BASE=.*$|SECRET_KEY_BASE=$(gen_hex 32)|" \
-	-e "s|^VAULT_ENC_KEY=.*$|VAULT_ENC_KEY=$(gen_hex 16)|" \
-	-e "s|^PG_META_CRYPTO_KEY=.*$|PG_META_CRYPTO_KEY=$(gen_hex 16)|" \
 	-e "s|^API_EXTERNAL_URL=.*$|API_EXTERNAL_URL=$domain/auth/v1|" \
 	-e "s|^SUPABASE_PUBLIC_URL=.*$|SUPABASE_PUBLIC_URL=$domain|" \
-	-e "s|^ENABLE_EMAIL_AUTOCONFIRM=.*$|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" \
-	-e "s|^S3_PROTOCOL_ACCESS_KEY_ID=.*$|S3_PROTOCOL_ACCESS_KEY_ID=$(gen_hex 16)|" \
-	-e "s|^S3_PROTOCOL_ACCESS_KEY_SECRET=.*$|S3_PROTOCOL_ACCESS_KEY_SECRET=$(gen_hex 32)|" \
-	-e "s|^MINIO_ROOT_PASSWORD=.*$|MINIO_ROOT_PASSWORD=$(gen_hex 16)|" \
-	-e "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*$|LOGFLARE_PUBLIC_ACCESS_TOKEN=$(gen_hex 16)|" \
-	-e "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*$|LOGFLARE_PRIVATE_ACCESS_TOKEN=$(gen_hex 16)|" .env.example >.env
+	-e "s|^ENABLE_EMAIL_AUTOCONFIRM=.*$|ENABLE_EMAIL_AUTOCONFIRM=$autoConfirm|" .env.example >.env
+
+info_log "Generating secrets and legacy API keys"
+if ! sh utils/generate-keys.sh --update-env; then
+	error_exit "Failed to generate Supabase keys."
+fi
+
+info_log "Generating asymmetric key pair and opaque API keys"
+if ! sh utils/add-new-auth-keys.sh --update-env; then
+	error_exit "Failed to generate Supabase keys."
+fi
 
 update_yaml_file() {
 	# https://github.com/mikefarah/yq/issues/465#issuecomment-2265381565
