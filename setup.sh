@@ -343,6 +343,8 @@ if [[ "$proxy" == "nginx" && "$with_authelia" == false ]]; then bcryptRounds=6; 
 # https://www.baeldung.com/linux/bcrypt-hash#using-htpasswd
 password=$(htpasswd -bnBC "$bcryptRounds" "" "$password" | cut -d : -f 2)
 
+gen_hex() { openssl rand -hex "$1"; }
+
 compose_file="docker-compose.yml"
 caddy_compose_file="docker-compose.caddy.yml"
 nginx_compose_file="docker-compose.nginx.yml"
