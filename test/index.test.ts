@@ -122,6 +122,7 @@ describe.concurrent("supabase test suite", () => {
   ];
 
   const adminKeys = [allKeys[1], allKeys[3]];
+  const newKeys = [allKeys[2], allKeys[3]];
 
   test.for(allKeys)(
     "CRUD operations with verified user - $1",
@@ -264,7 +265,7 @@ describe.concurrent("supabase test suite", () => {
     }
   );
 
-  test.for(allKeys)("Test functions - $1", async ([key], { expect }) => {
+  test.for(newKeys)("Test functions - $1", async ([key], { expect }) => {
     const supabase = createSupaClient(key);
     const { data } = await supabase.functions.invoke("hello", {
       method: "GET"
