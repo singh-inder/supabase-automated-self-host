@@ -270,6 +270,6 @@ describe.concurrent("supabase test suite", () => {
     const { data } = await supabase.functions.invoke("hello", {
       method: "GET"
     });
-    expect(data).toBe("Hello from Edge Functions!");
+    expect(data).toEqual({ "message": "Hello from Edge Functions!" });
   });
 });
