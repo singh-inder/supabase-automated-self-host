@@ -460,7 +460,14 @@ services:
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       # TODO: Allow configuring VERIFY_JWT per function.
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
-    command: ["start", "--main-service", "/home/deno/functions/main"]
+    command:
+      [
+        "start",
+        "--user-worker-request-idle-timeout",
+        "150000",
+        "--main-service",
+        "/home/deno/functions/main"
+      ]
 
   # Comment out everything below this point if you are using an external Postgres database
   db:
