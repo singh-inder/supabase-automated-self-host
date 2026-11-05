@@ -7,8 +7,6 @@ set -euo pipefail
 : "${WITH_REDIS:=false}"
 : "${SUDO_USER:=""}"
 
-echo "script CI=[$CI]"
-
 NO_COLOR=''
 RED=''
 CYAN=''
