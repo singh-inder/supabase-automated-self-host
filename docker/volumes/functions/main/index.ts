@@ -1,13 +1,8 @@
 import * as jose from 'jsr:@panva/jose@6'
+import { startMemoryPressureLoop } from './memory-pressure.ts'
 
 console.log('main function started')
-
-addEventListener('unhandledrejection', (ev) => {
-  // Without preventDefault(), a floating rejection destroys the main worker and the process exits.
-  // Sync throws inside timer callbacks are still fatal; wrap them in try/catch.
-  ev.preventDefault()
-  console.error('unhandled promise rejection in main worker', ev.reason)
-})
+startMemoryPressureLoop()
 
 const MAX_WORKER_RETRIES = 3
 
@@ -53,16 +48,6 @@ function getFunctionErrorResponse({ code, message, status }: FunctionFailure): R
       },
     }
   )
-}
-
-function onError(e: unknown): Response {
-  const ref = crypto.randomUUID()
-  console.error(`unhandled error in request handler (ref: ${ref})`, e)
-  return getFunctionErrorResponse({
-    code: RequestErrors.BootError,
-    message: `Internal Server Error (ref: ${ref})`,
-    status: 503,
-  })
 }
 
 function handleWorkerResponse(response: Response): Response {
@@ -275,7 +260,7 @@ async function isValidHybridJWT(jwt: string): Promise<AuthFailure | null> {
     }
   }
 
-  if (typeof jwtAlgorithm !== 'string' || !jwtAlgorithm) {
+  if (!jwtAlgorithm) {
     return {
       code: RequestErrors.InvalidTokenFormat,
       message: 'Invalid JWT format',
@@ -298,15 +283,23 @@ async function isValidHybridJWT(jwt: string): Promise<AuthFailure | null> {
   }
 }
 
-Deno.serve({ onError }, async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method !== 'OPTIONS' && VERIFY_JWT) {
-    const token = getAuthToken(req)
-    if (typeof token !== 'string') {
-      return getAuthErrorResponse(token)
-    }
-    const authFailure = await isValidHybridJWT(token)
-    if (authFailure) {
-      return getAuthErrorResponse(authFailure)
+    try {
+      const token = getAuthToken(req)
+      if (typeof token !== 'string') {
+        return getAuthErrorResponse(token)
+      }
+      const authFailure = await isValidHybridJWT(token)
+      if (authFailure) {
+        return getAuthErrorResponse(authFailure)
+      }
+    } catch (e) {
+      console.error(e)
+      return getAuthErrorResponse({
+        code: RequestErrors.InvalidTokenFormat,
+        message: 'Invalid JWT format',
+      })
     }
   }
 
@@ -351,7 +344,7 @@ Deno.serve({ onError }, async (req: Request) => {
     })
   }
 
-  const memoryLimitMb = 150
+  const memoryLimitMb = 256
   // Keep the wall clock above the 150s request idle timeout configured in Compose.
   const workerTimeoutMs = 400_000
   const requestAbsentTimeoutMs = 60_000
