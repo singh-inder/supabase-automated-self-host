@@ -65,6 +65,8 @@ jobs:
           mv setup.sh ../setup.sh
           cd ../
           chmod +x setup.sh
+          echo "outer CI=[$CI]"
+          sudo -E bash -c 'echo "inner CI=[$CI]"'
           params=()
           [[ "$WITH_AUTHELIA" == true ]] && params+=(--with-authelia)
           [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
