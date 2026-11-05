@@ -59,7 +59,6 @@ jobs:
           WITH_REDIS: ${{ contains(matrix.config, 'redis') }}
         # after checkout, pwd is the root of the repo /home/runner/work/<repository>/<repository>,
         # setup script cd into supabase-automated-self-host/docker, thats why cd ../
-        # When executing script with sudo, by default sudo doesn't pass env vars to script. -E flag solves that
         run: |
           set -ex
           mv setup.sh ../setup.sh
@@ -68,7 +67,7 @@ jobs:
           params=()
           [[ "$WITH_AUTHELIA" == true ]] && params+=(--with-authelia)
           [[ "$PROXY" == "nginx" ]] && params+=(--proxy nginx)
-          WITH_REDIS="$WITH_REDIS" sudo -E ./setup.sh "${params[@]}"
+          sudo env CI=true WITH_REDIS="$WITH_REDIS" ./setup.sh "${params[@]}"
 
       - uses: actions/setup-node@v6
         with:
