@@ -399,7 +399,12 @@ services:
     volumes:
       - ./volumes/storage:/var/lib/storage:z
     healthcheck:
-      test: ["CMD", "imgproxy", "health"]
+      test:
+        [
+          "CMD",
+          "imgproxy",
+          "health"
+        ]
       timeout: 5s
       interval: 5s
       retries: 3
